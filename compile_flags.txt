@@ -1,0 +1,5 @@
+-I/home/thriambak/riscv/ai_vector/tinymlperf/v0.1/example_submission
+-I/home/thriambak/riscv/ai_vector/tinymlperf/v0.1/example_submission/tensorflow/lite/micro/tools/make/downloads/flatbuffers/include
+-I/home/thriambak/riscv/ai_vector/tinymlperf/v0.1/example_submission/tensorflow/lite/micro/tools/make/downloads/gemmlowp
+-I/home/thriambak/riscv/ai_vector/tinymlperf/v0.1/example_submission/tensorflow/lite/micro/tools/make/downloads/ruy
+-DFLATBUFFERS_LITTLEENDIAN=1

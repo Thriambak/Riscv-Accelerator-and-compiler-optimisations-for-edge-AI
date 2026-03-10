@@ -1,0 +1,98 @@
+
+tinymlperf/v0.1/benchmark_results/vww_modified_ava.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00002b50 <_ZNK6tflite8Operator15builtin_optionsEv+0x14>:
+    2b50:	953e                	add	a0,a0,a5
+    2b52:	40b2                	lw	ra,12(sp)
+    2b54:	4422                	lw	s0,8(sp)
+    2b56:	0141                	addi	sp,sp,16
+    2b58:	8082                	ret
+    2b5a:	4501                	li	a0,0
+    2b5c:	bfdd                	j	2b52 <_ZNK6tflite8Operator15builtin_optionsEv+0x16>
+
+00002b5e <_Z12InfiniteLoopv>:
+    2b5e:	000a4517          	auipc	a0,0xa4
+    2b62:	1141                	addi	sp,sp,-16
+    2b64:	aca50513          	addi	a0,a0,-1334 # a6628 <__trunctfdf2+0x510>
+    2b68:	c606                	sw	ra,12(sp)
+    2b6a:	c48ff0ef          	jal	1fb2 <DebugLog>
+    2b6e:	a001                	j	2b6e <_Z12InfiniteLoopv+0x10>
+
+00002b70 <_ZN6tflite12_GLOBAL__N_123CheckParsePointerParamsEPKNS_8OperatorEPNS_13ErrorReporterEPNS_20BuiltinDataAllocatorEPPv>:
+    2b70:	e501                	bnez	a0,2b78 <_ZN6tflite12_GLOBAL__N_123CheckParsePointerParamsEPKNS_8OperatorEPNS_13ErrorReporterEPNS_20BuiltinDataAllocatorEPPv+0x8>
+    2b72:	1141                	addi	sp,sp,-16
+    2b74:	c606                	sw	ra,12(sp)
+    2b76:	37e5                	jal	2b5e <_Z12InfiniteLoopv>
+    2b78:	dded                	beqz	a1,2b72 <_ZN6tflite12_GLOBAL__N_123CheckParsePointerParamsEPKNS_8OperatorEPNS_13ErrorReporterEPNS_20BuiltinDataAllocatorEPPv+0x2>
+    2b7a:	de65                	beqz	a2,2b72 <_ZN6tflite12_GLOBAL__N_123CheckParsePointerParamsEPKNS_8OperatorEPNS_13ErrorReporterEPNS_20BuiltinDataAllocatorEPPv+0x2>
+    2b7c:	dafd                	beqz	a3,2b72 <_ZN6tflite12_GLOBAL__N_123CheckParsePointerParamsEPKNS_8OperatorEPNS_13ErrorReporterEPNS_20BuiltinDataAllocatorEPPv+0x2>
+    2b7e:	8082                	ret
+
+00002b80 <_ZN6tflite17ConvertTensorTypeENS_10TensorTypeEP10TfLiteTypePNS_13ErrorReporterE>:
+    2b80:	472d                	li	a4,11
+    2b82:	87aa                	mv	a5,a0
+    2b84:	04a76663          	bltu	a4,a0,2bd0 <_ZN6tflite17ConvertTensorTypeENS_10TensorTypeEP10TfLiteTypePNS_13ErrorReporterE+0x50>
+    2b88:	00105717          	auipc	a4,0x105
+    2b8c:	fa470713          	addi	a4,a4,-92 # 107b2c <_ZZN6tflite24EnumNamesBuiltinOperatorEvE5names+0x210>
+    2b90:	00251793          	slli	a5,a0,0x2
+    2b94:	97ba                	add	a5,a5,a4
+    2b96:	439c                	lw	a5,0(a5)
+    2b98:	97ba                	add	a5,a5,a4
+    2b9a:	8782                	jr	a5
+    2b9c:	47a9                	li	a5,10
+    2b9e:	c19c                	sw	a5,0(a1)
+    2ba0:	4501                	li	a0,0
+    2ba2:	8082                	ret
+    2ba4:	4785                	li	a5,1
+    2ba6:	bfe5                	j	2b9e <_ZN6tflite17ConvertTensorTypeENS_10TensorTypeEP10TfLiteTypePNS_13ErrorReporterE+0x1e>
+    2ba8:	47ad                	li	a5,11
+    2baa:	bfd5                	j	2b9e <_ZN6tflite17ConvertTensorTypeENS_10TensorTypeEP10TfLiteTypePNS_13ErrorReporterE+0x1e>
+    2bac:	479d                	li	a5,7
+    2bae:	bfc5                	j	2b9e <_ZN6tflite17ConvertTensorTypeENS_10TensorTypeEP10TfLiteTypePNS_13ErrorReporterE+0x1e>
+    2bb0:	4789                	li	a5,2
+    2bb2:	b7f5                	j	2b9e <_ZN6tflite17ConvertTensorTypeENS_10TensorTypeEP10TfLiteTypePNS_13ErrorReporterE+0x1e>
+    2bb4:	478d                	li	a5,3
+    2bb6:	b7e5                	j	2b9e <_ZN6tflite17ConvertTensorTypeENS_10TensorTypeEP10TfLiteTypePNS_13ErrorReporterE+0x1e>
+    2bb8:	47a5                	li	a5,9
+    2bba:	b7d5                	j	2b9e <_ZN6tflite17ConvertTensorTypeENS_10TensorTypeEP10TfLiteTypePNS_13ErrorReporterE+0x1e>
+    2bbc:	4791                	li	a5,4
+    2bbe:	b7c5                	j	2b9e <_ZN6tflite17ConvertTensorTypeENS_10TensorTypeEP10TfLiteTypePNS_13ErrorReporterE+0x1e>
+    2bc0:	4795                	li	a5,5
+    2bc2:	bff1                	j	2b9e <_ZN6tflite17ConvertTensorTypeENS_10TensorTypeEP10TfLiteTypePNS_13ErrorReporterE+0x1e>
+    2bc4:	4799                	li	a5,6
+    2bc6:	bfe1                	j	2b9e <_ZN6tflite17ConvertTensorTypeENS_10TensorTypeEP10TfLiteTypePNS_13ErrorReporterE+0x1e>
+    2bc8:	47a1                	li	a5,8
+    2bca:	bfd1                	j	2b9e <_ZN6tflite17ConvertTensorTypeENS_10TensorTypeEP10TfLiteTypePNS_13ErrorReporterE+0x1e>
+    2bcc:	47b1                	li	a5,12
+    2bce:	bfc1                	j	2b9e <_ZN6tflite17ConvertTensorTypeENS_10TensorTypeEP10TfLiteTypePNS_13ErrorReporterE+0x1e>
+    2bd0:	1141                	addi	sp,sp,-16
+    2bd2:	c606                	sw	ra,12(sp)
+    2bd4:	0005a023          	sw	zero,0(a1)
+    2bd8:	000a4597          	auipc	a1,0xa4
+    2bdc:	8532                	mv	a0,a2
+    2bde:	62858593          	addi	a1,a1,1576 # a7200 <__trunctfdf2+0x10e8>
+    2be2:	863e                	mv	a2,a5
+    2be4:	f13ff0ef          	jal	2af6 <_ZN6tflite13ErrorReporter6ReportEPKcz>
+    2be8:	40b2                	lw	ra,12(sp)
+    2bea:	4505                	li	a0,1
+    2bec:	0141                	addi	sp,sp,16
+    2bee:	8082                	ret
+
+00002bf0 <_ZN6tflite8ParseAbsEPKNS_8OperatorEPNS_13ErrorReporterEPNS_20BuiltinDataAllocatorEPPv>:
+    2bf0:	4501                	li	a0,0
+    2bf2:	8082                	ret
+
+00002bf4 <_ZN6tflite9ParseCeilEPKNS_8OperatorEPNS_13ErrorReporterEPNS_20BuiltinDataAllocatorEPPv>:
+    2bf4:	4501                	li	a0,0
+    2bf6:	8082                	ret
+
+00002bf8 <_ZN6tflite8ParseCosEPKNS_8OperatorEPNS_13ErrorReporterEPNS_20BuiltinDataAllocatorEPPv>:
+    2bf8:	4501                	li	a0,0
+    2bfa:	8082                	ret
+
+00002bfc <_ZN6tflite15ParseDequantizeEPKNS_8OperatorEPNS_13ErrorReporterEPNS_20BuiltinDataAllocatorEPPv>:
+    2bfc:	4501                	li	a0,0
+    2bfe:	8082                	ret
