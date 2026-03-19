@@ -1,0 +1,3 @@
+Vcv32e40x_wrapper_if_c_obi__Tz1_TBz2__Slow.o: \
+ Vcv32e40x_wrapper_if_c_obi__Tz1_TBz2__Slow.cpp Vcv32e40x_wrapper__pch.h \
+ Vcv32e40x_wrapper__Syms.h Vcv32e40x_wrapper_if_c_obi__Tz1_TBz2.h

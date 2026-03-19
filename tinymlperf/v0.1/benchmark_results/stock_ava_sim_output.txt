@@ -1,0 +1,29 @@
+Starting VWW MLPerf Initialization...
+
+invocation 1 took 183090425 cycles
+
+Model output: [
+0.039062 
+0.960938 
+]
+
+AVA perf counters:
+
+  vec_insns=0
+
+  vlsu_stalls=0
+
+  compute_cycles=0
+
+  skipped_ops=0
+
+  compacted_cycles=0
+
+Kernel profiling:
+
+  conv:      113029506 cycles (14 calls)
+
+  depthwise: 69942812 cycles (14 calls)
+
+  fc:        0 cycles (0 calls)
+

@@ -1,0 +1,3 @@
+Vcv32e40x_wrapper_if_c_obi__DepSet_h03eff3e7__0.o: \
+ Vcv32e40x_wrapper_if_c_obi__DepSet_h03eff3e7__0.cpp \
+ Vcv32e40x_wrapper__pch.h Vcv32e40x_wrapper_if_c_obi.h

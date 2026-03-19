@@ -1,0 +1,3 @@
+Vcv32e40x_wrapper_if_c_obi__Tz1_TBz2__DepSet_hd6b23c2d__0.o: \
+ Vcv32e40x_wrapper_if_c_obi__Tz1_TBz2__DepSet_hd6b23c2d__0.cpp \
+ Vcv32e40x_wrapper__pch.h Vcv32e40x_wrapper_if_c_obi__Tz1_TBz2.h

@@ -1,0 +1,154 @@
+[Simulator] Cycle 100000, IF_ADDR: 0122c506 | imem_req=1 dmem_req=1 amem_req=0
+Starting VWW MLPerf Initialization...
+
+[Simulator] Cycle 200000, IF_ADDR: 00037e06 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 300000, IF_ADDR: 0125db86 | imem_req=1 dmem_req=0 amem_req=0
+Preparing node 0...
+
+Preparing node 1...
+
+Preparing node 2...
+
+Preparing node 3...
+
+[Simulator] Cycle 400000, IF_ADDR: 0036cc86 | imem_req=0 dmem_req=0 amem_req=0
+Preparing node 4...
+
+Preparing node 5...
+
+[Simulator] Cycle 500000, IF_ADDR: 0036de86 | imem_req=0 dmem_req=0 amem_req=0
+Preparing node 6...
+
+[Simulator] Cycle 600000, IF_ADDR: 00f66a06 | imem_req=1 dmem_req=0 amem_req=0
+Preparing node 7...
+
+Preparing node 8...
+
+[Simulator] Cycle 700000, IF_ADDR: 003ad306 | imem_req=0 dmem_req=1 amem_req=0
+Preparing node 9...
+
+[Simulator] Cycle 800000, IF_ADDR: 00370286 | imem_req=1 dmem_req=0 amem_req=0
+Preparing node 10...
+
+[Simulator] Cycle 900000, IF_ADDR: 00370406 | imem_req=1 dmem_req=0 amem_req=0
+Preparing node 11...
+
+[Simulator] Cycle 1000000, IF_ADDR: 00041106 | imem_req=1 dmem_req=1 amem_req=0
+[Simulator] Cycle 1100000, IF_ADDR: 01198506 | imem_req=1 dmem_req=0 amem_req=0
+Preparing node 12...
+
+[Simulator] Cycle 1200000, IF_ADDR: 00f67d86 | imem_req=1 dmem_req=0 amem_req=0
+Preparing node 13...
+[Simulator] Cycle 1300000, IF_ADDR: 01174306 | imem_req=1 dmem_req=0 amem_req=0
+
+[Simulator] Cycle 1400000, IF_ADDR: 00f7ca86 | imem_req=1 dmem_req=1 amem_req=0
+Preparing node 14...
+
+[Simulator] Cycle 1500000, IF_ADDR: 0037c906 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 1600000, IF_ADDR: 00f75a86 | imem_req=1 dmem_req=0 amem_req=0
+Preparing node 15...
+
+[Simulator] Cycle 1700000, IF_ADDR: 0037d606 | imem_req=1 dmem_req=1 amem_req=0
+[Simulator] Cycle 1800000, IF_ADDR: 00fd8b86 | imem_req=1 dmem_req=1 amem_req=0
+Preparing node 16...
+
+[Simulator] Cycle 1900000, IF_ADDR: 00373286 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 2000000, IF_ADDR: 00f7ca86 | imem_req=1 dmem_req=1 amem_req=0
+Preparing node 17...
+
+[Simulator] Cycle 2100000, IF_ADDR: 0036cc86 | imem_req=0 dmem_req=0 amem_req=0
+[Simulator] Cycle 2200000, IF_ADDR: 00f75806 | imem_req=1 dmem_req=0 amem_req=0
+Preparing node 18...
+
+[Simulator] Cycle 2300000, IF_ADDR: 00041186 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 2400000, IF_ADDR: 00f63606 | imem_req=1 dmem_req=0 amem_req=0
+Preparing node 19...
+
+[Simulator] Cycle 2500000, IF_ADDR: 00379e86 | imem_req=1 dmem_req=1 amem_req=0
+[Simulator] Cycle 2600000, IF_ADDR: 00f68906 | imem_req=0 dmem_req=0 amem_req=0
+Preparing node 20...
+
+[Simulator] Cycle 2700000, IF_ADDR: 0037a406 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 2800000, IF_ADDR: 00f66886 | imem_req=0 dmem_req=0 amem_req=0
+Preparing node 21...
+
+[Simulator] Cycle 2900000, IF_ADDR: 00370486 | imem_req=0 dmem_req=1 amem_req=0
+[Simulator] Cycle 3000000, IF_ADDR: 00fd8906 | imem_req=1 dmem_req=0 amem_req=0
+Preparing node 22...
+
+[Simulator] Cycle 3100000, IF_ADDR: 00370286 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 3200000, IF_ADDR: 00f78c06 | imem_req=1 dmem_req=0 amem_req=0
+Preparing node 23...
+
+[Simulator] Cycle 3300000, IF_ADDR: 00380286 | imem_req=0 dmem_req=0 amem_req=0
+[Simulator] Cycle 3400000, IF_ADDR: 00f75a06 | imem_req=1 dmem_req=0 amem_req=0
+Preparing node 24...
+
+[Simulator] Cycle 3500000, IF_ADDR: 00380706 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 3600000, IF_ADDR: 00f60a86 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 3700000, IF_ADDR: 00f68f06 | imem_req=0 dmem_req=0 amem_req=0
+[Simulator] Cycle 3800000, IF_ADDR: 00ecfc86 | imem_req=1 dmem_req=0 amem_req=0
+Preparing node 25...
+
+[Simulator] Cycle 3900000, IF_ADDR: 00041206 | imem_req=0 dmem_req=0 amem_req=0
+[Simulator] Cycle 4000000, IF_ADDR: 00f9b986 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 4100000, IF_ADDR: 00f74e06 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 4200000, IF_ADDR: 00f7ca06 | imem_req=1 dmem_req=0 amem_req=0
+Preparing node 26...
+
+[Simulator] Cycle 4300000, IF_ADDR: 00380886 | imem_req=0 dmem_req=0 amem_req=0
+[Simulator] Cycle 4400000, IF_ADDR: 0039cb06 | imem_req=1 dmem_req=1 amem_req=0
+[Simulator] Cycle 4500000, IF_ADDR: 0039cd06 | imem_req=1 dmem_req=1 amem_req=0
+[Simulator] Cycle 4600000, IF_ADDR: 00f79e06 | imem_req=1 dmem_req=0 amem_req=0
+Preparing node 27...
+
+Preparing node 28...
+
+Preparing node 29...
+
+Preparing node 30...
+
+[Simulator] Cycle 4700000, IF_ADDR: 0004b906 | imem_req=1 dmem_req=1 amem_req=0
+Initialize done.
+
+[Simulator] Cycle 4800000, IF_ADDR: 00022e06 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 4900000, IF_ADDR: 00fb7386 | imem_req=0 dmem_req=0 amem_req=0
+[Simulator] Cycle 5000000, IF_ADDR: 00fb2b06 | imem_req=1 dmem_req=1 amem_req=0
+[Simulator] Cycle 5100000, IF_ADDR: 00fb5c86 | imem_req=0 dmem_req=0 amem_req=0
+[Simulator] Cycle 5200000, IF_ADDR: 00fb5d06 | imem_req=0 dmem_req=0 amem_req=0
+[Simulator] Cycle 5300000, IF_ADDR: 00fb4f86 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 5400000, IF_ADDR: 00fa3e86 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 5500000, IF_ADDR: 00f36006 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 5600000, IF_ADDR: 00eec986 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 5700000, IF_ADDR: 00fb2906 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 5800000, IF_ADDR: 00fa8706 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 5900000, IF_ADDR: 0004d486 | imem_req=0 dmem_req=1 amem_req=0
+[Simulator] Cycle 6000000, IF_ADDR: 00fb0586 | imem_req=1 dmem_req=1 amem_req=0
+[Simulator] Cycle 6100000, IF_ADDR: 00fb2b06 | imem_req=1 dmem_req=1 amem_req=0
+[Simulator] Cycle 6200000, IF_ADDR: 00fd3686 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 6300000, IF_ADDR: 00fa5806 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 6400000, IF_ADDR: 00041186 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 6500000, IF_ADDR: 0004d286 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 6600000, IF_ADDR: 0004bb86 | imem_req=0 dmem_req=1 amem_req=0
+[Simulator] Cycle 6700000, IF_ADDR: 00fb1006 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 6800000, IF_ADDR: 0004d986 | imem_req=0 dmem_req=1 amem_req=0
+[Simulator] Cycle 6900000, IF_ADDR: 00fa4206 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 7000000, IF_ADDR: 00fd4606 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 7100000, IF_ADDR: 00023186 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 7200000, IF_ADDR: 00fb5c86 | imem_req=0 dmem_req=0 amem_req=0
+[Simulator] Cycle 7300000, IF_ADDR: 00fb7386 | imem_req=0 dmem_req=0 amem_req=0
+[Simulator] Cycle 7400000, IF_ADDR: 00fb5d86 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 7500000, IF_ADDR: 00fd3b86 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 7600000, IF_ADDR: 00fd1c86 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 7700000, IF_ADDR: 00fb4c06 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 7800000, IF_ADDR: 00041006 | imem_req=0 dmem_req=0 amem_req=0
+[Simulator] Cycle 7900000, IF_ADDR: 00fb7386 | imem_req=0 dmem_req=0 amem_req=0
+[Simulator] Cycle 8000000, IF_ADDR: 00fd2706 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 8100000, IF_ADDR: 0004da86 | imem_req=0 dmem_req=1 amem_req=0
+[Simulator] Cycle 8200000, IF_ADDR: 0004da86 | imem_req=0 dmem_req=1 amem_req=0
+[Simulator] Cycle 8300000, IF_ADDR: 0004b986 | imem_req=1 dmem_req=1 amem_req=0
+[Simulator] Cycle 8400000, IF_ADDR: 00fb0906 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 8500000, IF_ADDR: 00fb1306 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 8600000, IF_ADDR: 00fb4806 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 8700000, IF_ADDR: 00eec986 | imem_req=1 dmem_req=0 amem_req=0
+[Simulator] Cycle 8800000, IF_ADDR: 00fa3a86 | imem_req=1 dmem_req=0 amem_req=0

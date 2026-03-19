@@ -1,0 +1,66 @@
+Starting VWW MLPerf Initialization...
+
+invocation 1 took 84076551 cycles
+
+Model output: [
+0.039062 
+0.960938 
+]
+
+AVA perf counters:
+
+  vec_insns=0
+
+  vlsu_stalls=0
+
+  compute_cycles=0
+
+  skipped_ops=0
+
+  compacted_cycles=0
+
+Kernel profiling:
+
+  conv:      44084184 cycles (14 calls)
+
+  depthwise: 39874025 cycles (14 calls)
+
+  fc:        0 cycles (0 calls)
+
+invocation 2 took 84123506 cycles
+
+Model output: [
+0.039062 
+0.960938 
+]
+
+AVA perf counters:
+
+  vec_insns=0
+
+  vlsu_stalls=0
+
+  compute_cycles=0
+
+  skipped_ops=0
+
+  compacted_cycles=0
+
+Kernel profiling:
+
+  conv:      88168368 cycles (28 calls)
+
+  depthwise: 79795005 cycles (28 calls)
+
+  fc:        0 cycles (0 calls)
+
+
+[Simulator] Exit code: 0
+
+>>> =======================================
+>>> Benchmark: /home/thriambak/riscv/ai_vector/tinymlperf/v0.1/benchmark_results/vww_modified_ava.vmem
+>>> Perf Start: 191893615 cycles
+>>> Perf End:   133173359 cycles
+>>> Elapsed:    4236247040 cycles
+>>> =======================================
+

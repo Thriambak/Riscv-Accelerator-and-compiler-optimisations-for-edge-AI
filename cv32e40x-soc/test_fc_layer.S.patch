@@ -1,0 +1,10 @@
+--- test_fc_layer.S
++++ test_fc_layer.S
+@@ -103,2 +103,6 @@
+-    .word   0xB620A1D7          # vmacc.vv v3, v1, v2
++    .word   0xB620A1D7          # vmacc.vv v3, v1, v2
++    
++    li t6, 0x1234
++    la t0, perf_start
++    sw t6, 0(t0)
++    jr x0

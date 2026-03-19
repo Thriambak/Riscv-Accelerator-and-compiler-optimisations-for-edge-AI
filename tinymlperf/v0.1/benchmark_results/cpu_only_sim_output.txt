@@ -1,0 +1,26 @@
+Starting VWW MLPerf Initialization...
+
+invocation 1 took 228241960 cycles
+
+Model output: [
+0.066406 
+0.933594 
+]
+
+invocation 2 took 228309856 cycles
+
+Model output: [
+0.781250 
+0.218750 
+]
+
+
+[Simulator] Exit code: 0
+
+>>> =======================================
+>>> Benchmark: /home/thriambak/riscv/ai_vector/tinymlperf/v0.1/benchmark_results/vww_cpu_only.vmem
+>>> Perf Start: 994054255 cycles
+>>> Perf End:   935333999 cycles
+>>> Elapsed:    4236247040 cycles
+>>> =======================================
+

@@ -1,0 +1,11 @@
+*.vcd
+*.log
+*.o
+*.elf
+cv32e40x-soc/1
+test_*.vcd
+.git_backup/
+*.gch
+*.zip
+build/
+obj_dir/
