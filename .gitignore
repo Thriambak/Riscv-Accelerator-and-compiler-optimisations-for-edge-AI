@@ -9,3 +9,5 @@ test_*.vcd
 *.zip
 build/
 obj_dir/
+cv32e40x-soc/build/
+cv32e40x-soc/trace_vector.vcd
