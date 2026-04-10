@@ -90,6 +90,8 @@ module vector_lsu (
     logic [3:0] be_gen;
 
     logic [31:0] next_el_pre, next_el_addr;
+    // EARTH DROM: multi-element coalescing address probes
+    logic [31:0] drom_el1_addr, drom_el2_addr, drom_el3_addr;
     logic [31:0] cycle_addr, stride;
     logic [6:0] cycle_bytes;
 
@@ -182,18 +184,40 @@ module vector_lsu (
                 ib_select = cycle_addr[1:0];
 
                 if(stride > 32'd1) begin
-                    be_gen[ib_select] = 1'b1;
+                    // ============================================================
+                    // EARTH-Style Multi-Element Coalescing (up to 4 elements/word)
+                    // Instead of looking 1 element ahead, scan ALL elements that
+                    // fall within the same 32-bit aligned word. This reduces OBI
+                    // transactions by up to 4x for small-stride patterns.
+                    // Ref: EARTH architecture (arXiv, Apr 2025) - LSDO/DROM concept
+                    // ============================================================
 
-                    // Where is our next byte?
-                    next_el_pre = cycle_addr + stride;
-                    if(next_el_pre[31:2] == cycle_addr[31:2] && byte_track > 1) begin
-                        be_gen[next_el_pre[1:0]] = 1'b1;
-                        next_el_addr = next_el_pre + stride; // Stride by second element
-                    end else begin
-                        next_el_addr = next_el_pre;
+                    // Element 0: always enable
+                    be_gen[ib_select] = 1'b1;
+                    drom_el1_addr = cycle_addr + stride;
+                    drom_el2_addr = drom_el1_addr + stride;
+                    drom_el3_addr = drom_el2_addr + stride;
+                    next_el_addr = drom_el1_addr; // Default: advance by 1 element
+
+                    // Element 1: coalesce if same aligned word
+                    if(byte_track > 1 && drom_el1_addr[31:2] == cycle_addr[31:2]) begin
+                        be_gen[drom_el1_addr[1:0]] = 1'b1;
+                        next_el_addr = drom_el2_addr;
+
+                        // Element 2: coalesce if same aligned word
+                        if(byte_track > 2 && drom_el2_addr[31:2] == cycle_addr[31:2]) begin
+                            be_gen[drom_el2_addr[1:0]] = 1'b1;
+                            next_el_addr = drom_el3_addr;
+
+                            // Element 3: coalesce if same aligned word
+                            if(byte_track > 3 && drom_el3_addr[31:2] == cycle_addr[31:2]) begin
+                                be_gen[drom_el3_addr[1:0]] = 1'b1;
+                                next_el_addr = drom_el3_addr + stride;
+                            end
+                        end
                     end
 
-                    // Calculate the number of bytes for LOAD_CYCLE
+                    // Calculate the number of bytes coalesced in this OBI transaction
                     cycle_bytes = {5'd0, be_gen[3]} + {5'd0, be_gen[2]} + {5'd0, be_gen[1]} + {5'd0, be_gen[0]};
                 end else if(stride == 1) begin
                     be_gen[0] = (ib_select == 32'd0) ? 1 : 0;
@@ -280,7 +304,17 @@ module vector_lsu (
                 end
             end
             LOAD_FIRST: begin
-                next_state = LOAD_CYCLE;
+                // ============================================================
+                // Double-Buffered OBI Pipeline: Issue first request immediately
+                // Instead of wasting a cycle in LOAD_FIRST → LOAD_CYCLE,
+                // issue the OBI request right away and transition to the
+                // pipelined wait state.
+                // ============================================================
+                if(byte_track_next > 0) begin
+                    data_req_o = 1'b1;
+                    cycle_load = 1'b1;
+                end
+                next_state = LOAD_WAIT;
             end
             LOAD_CYCLE: begin
                 if(byte_track_next == 0) begin
@@ -294,7 +328,20 @@ module vector_lsu (
             LOAD_WAIT: begin
                 if(data_rvalid_i) begin
                     cycle_addr_inc = 1'b1;
-                    next_state = LOAD_CYCLE;
+                    // ============================================================
+                    // Double-Buffered Pipeline: On receiving response, immediately
+                    // check if more bytes remain. If so, issue the NEXT OBI request
+                    // on THIS cycle (pipelining), saving 1 dead cycle per transaction.
+                    // Original: LOAD_WAIT → LOAD_CYCLE → LOAD_WAIT (2 cycles dead)
+                    // New:      LOAD_WAIT → LOAD_WAIT (0 dead cycles, back-to-back)
+                    // ============================================================
+                    if(byte_track_next > 0) begin
+                        data_req_o = 1'b1;
+                        cycle_load = 1'b1;
+                        next_state = LOAD_WAIT;  // Stay in LOAD_WAIT (pipelined)
+                    end else begin
+                        next_state = LOAD_FINAL;
+                    end
                 end else if(byte_track_next == 0)
                     next_state = LOAD_FINAL;
                 else

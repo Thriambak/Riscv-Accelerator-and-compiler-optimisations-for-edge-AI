@@ -19,7 +19,7 @@ Use this skill when:
 - Doing technical research
 - Performing due diligence
 - Need detailed, cited research reports
-
+- Anlaysing for Project upgrades and Research Areas
 ## Requirements
 
 - Python 3.8+

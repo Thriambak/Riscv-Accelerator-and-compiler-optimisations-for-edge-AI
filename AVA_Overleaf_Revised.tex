@@ -1,0 +1,196 @@
+\chapter{Phase 1 Implementation Findings.}
+This step had twice the aim: the construction of optimized matrix multiplica- tion kernels using RISC-V Vector (RVV) extensions and set clinical data Quantized camera to Numico L their arrangements (use of vectors, volume, and frequency values) are prepared for utilization on a quantized cama-CASES. edge deployment gauge model. These elementary works formed the basis of the following. design of custom-ISA extensions and the AVA hardware accelerator.
+
+The optimization of multipliencies of matrices is known as matrix multiplication optimization. More than 90 percent of transformer inference time is dominated by matrix multiplication. We devel- implemented two works, optimized and benchmarked: a generic scalar base, which is based on se- differentiated by quential floating-point multiply-add and multiply-accumulate instructions, and a non-profiled RVV implementation. mentation. The scalar kernel is performed 2N 3 times, and 3N 3 times in memory. pendently, without architecture optimizations. The very overhead of bringing. reading and writing floating-point operands sequentially is a significant source of register pressure and data. starvation.
+
+On the other hand, the vector implementation uses RVV intrinsics to take advantage of. Single data, Multiple data (SIMD) parallelism. We specifically utilized r iscvv setvle32m1() indicates ordynamicvectorlengthcontrol r iscvv le32v indicates orcontiguousrowloading,and r iscvv lsse32v indicates orstridedcolumnaccess.Bystr
+
+\section{Results and Methodology- Benchmark.}
+The CSRs through which cycle-precise performance measurements were acquired were the rdcycle CSR. overhead-free measurements. The dimensions of the matrices covered by benchmarks were 2 x 2 down to. 512 x 512.
+
+The scalar implementation is always better than the matrix implementation on matrices less than 64 x 64. created the vectorized counterpart (pressed down 1.7x on average cycles). Wait cycles induced by ómsetvl eclipsed provedamil urv vsetvl Setting up vectors and register spilling on strided accesses to memory. the advantages of parallel arithmetic pipeline execution. The delay penalties that are seen. here first introduce endemic behaviors to initialize states of long vectors in very short data spans: for example, at 2 x 2, the overhead of the architecture became 72.5% of the active. cycles, falling to 27.6 per cent. as the size was increased to 64 x 64.
+
+There was a large crossover at the 128 x 128 dimension. implementation was 24.6 times faster than the scalar implementation. At this scale, the high arithmetic intensity ultimately amortized the physical set up expenses of the vector unit, reporting good Figures of speech SIMD productivity. However, at 256 x 256 and larger scales, the two implementations came practically into contact at the same cycle counts, indicating. saturating memory bandwidth and declining hits in the cache. These unpredictable then pipeline memory stalls provoked the memory-oriented hardware optimizations below- taken in Phase 2.
+
+\section{African Swine Flu (5.3) Investigation}
+African Swine Flu (5.3) Investigation To protect vital information, investigating alternative algorithms is undertaken. Algorithms of sub-cubic asymptotic complexity, including the algorithm by Strassen. (O(N 2.807)), were investigated. These alternatives were eliminated on practical analysis. three reasons: 1. Fragmentation of Memory: The recursive quadrants of Strassen. tion requires non contiguous memory accesses and the stride patterns demanded. to support effective vectors loading and crippling spatial caching equipment. 2. Recursive Over- head The large-to-small function-call penalty terms eliminated conceptual savings. medium matrices characterizing TinyML models, stack framing routines tremendously dominate the vast. nated execution time. 3. Execution Dependency The algorithm needs to run in sequence. relied on its 7 mathematically-linked sub-squeeches, impeded the paral- siamesysel multiplication throughput of canonical matrix multiplication models.
+
+\sectionsection{Model Quantization}
+In order to deal with truly serious memory footprint limitations, the TinyLlama-1.1B model was com- trained on quantization frameworks of TensorFlow Lite. Weights were obnoxiously shoved down 32-bit floating-point (4.4 GB) format to 8-bit integer. (1.1 GB) container. This extreme 4x compression not only ensures extreme edge arrangements of deploying devices but also proficiently multiplies the provided architectural. memory bandwidth. More importantly, the quantization compression uses the layers in order to stay. stored wholly in high-speed SRAM when it is critical to make inferences. Functional accuracy tests - tests established little degradation (2-3% perplexity variance) in comparison to. the wider FP32 foundation, is a heavy endorsement of the business capability of an INT8- optimized information processing.
+
+\section{Implementation Problems and Learnings.}
+Phase 1 identified two structural bottlenecks that were of critical nature in direct connection to the development. of Phase 2: 1. Instruction Overhead: The cyclical repetitive organization of vsetvl. in loop software architecture radically impaired total cycle time. 2. Memory Band- width: Strided load configurations, completely required by the column-major ac-processing. cess shapes, it uses hardware cycles disproportionately while in a sequence compared to sequentially. strained load parameters.
+
+The solution to these inseconcrete processing bottlenecks required a change of gears. since software-only mapping methods can be changed to the holistic hardware-software co- AVA custom core logic architecture.
+
+\chapter{Phase 2 Accelerator Remodelling and Implementation}
+The second stage was high-end hardware software co-design to carefully opti- scaling down AI Vector Accelerator (AVA) architecture. A very advanced set of. A total of 12 specified structural optimizations were directly built into the physical RTL ele- program memory subsystem decoding in the form of bridges, arithmetic arith- Also data path logic units (ALUs) and software operational limits.
+
+\section{Instruction Fetch and Memory Enhancements.}
+\textbf{4-deep pipelined vector instruction FIFO:} A sturdy command elasticity buffer. was designed with the auxiliary accelerator directly interposed between the scalar processor and the auxiliary accelerator. This important architectural addition does not allow the host CPU to exit wait stalls. when performing extended spatial vectors. By disconnecting the core dispatch completely. raw vector execution sequence protocol, it allows intelligent overlapping. implementation: execution at this stage is now liberated so that the scalar core can work individually to calculate make-ahead loop ad-values. dresses, control flow branches with conditional control, and dimen-perfect pre computing. sional array indices, all when AVA coprocessoris autonomous and asynchronous. processes voluminous mathematical sweeps obtained in the active FIFO instruction queue. This radically conceals dispatch latency over the complex neural inference layers.
+
+\textbf{EARTH-Style DROM Strided Load Coalescing:} The aca-style is a potent inspiration. DEMic EARTH sparse architecture, a native Data Reorganization Module (DROM). to the processor core memory unit was added a smart synthesis of independent. memory fetches. In the past, fat-foot accesses that are naturally part of transposed math were a routine thing. MAT convolutions would require the legacy hardware to compute each, separate convolution. Read requests at the granularity of the element, ruthlessly underutilising the 32-bit bus underneath. matrix. The advanced new DROM uses a proprietary 4-element compu- tational lookahead logic framework Systematic aggregation up to four unaligned. Loads 8-bit strided into 1 maximized 32-bit Open Bus Interface (OBI) physical. transaction. Such a spatial awareness helps to reduce the latency of the memory read by 75%. when using high-frequency patterns, coherently changing bottleneck to memory transac- tions reverts to rudimentary mathematical computation.
+
+\textbf{OBI Bus Pipelined Double-Buffering:} The central memory controller State. Machine was also re-written and re-programmed to intentionally spew out continuous. back-to-back bus requests using the the standardized OBI protocol network. Previously, the elementary controller would unnecessarily send a request flag, and hang around waiting until the val- idation response, and put off an entire hardware cycle until formulat- delivering the following corporeal speech. By forcibly stacking the active address. concurrently with the data reception phase, the propagation phase of transaction N + 1 occurs. Dead cyclic wait sequences of historical transaction N were completely removed. from the system. This small internal, two buffers internal arrangement acts identically. Overlay onto a mathematical software prefetch loop to allow continuous block loads that optimize the system SRAM bandwidth.
+
+\section{Register Decode and Predication}
+Decode is calculated by comparing the address of the predication with the address of the address segment we are currently accessing.
+
+\textbf{True LMUL Register Grouping (VL Scaling):} Formidable hardware enforce- natively integrated with ment of RISC-V Vector Length Multiplier (LMUL) semantics. directly out to the internal decoding and bounds logic circuitry. This feature mathemat- invisibly and ically sums several mapped physical registers (e.g. v0 and v1) and during processing, transforms to much bigger dynamic logical execution units. By leveraging A single vector in- embedded intrinsic Vector Length (VL) spatial scaling algorithms. expansive matrix domains can be transparently processed by struction. This drastically neutral- scalables basic decode bottlenecks; application of one instruction dispatch coordinates. to 4 or 8 times the amount of data that can be handled without re-repeated stops. transmit back ping-pong between the host and accelerator units.
+
+\textbf{Vector Masking Infrastructure:} A fine-grained architectural mechanism of spe. cific vector predication were carried forward to the fundamental with success. arithmetic stage. This infrastructure basically allows the dynamic gating of sin- gle, discontinuous dynamical operating mathematical elements. conditional Boolean flags that are unconditionally coded into discrete physical mask registers. By by- transducing conditional logic program code to (and forcing calculation) of. the most physically accessible depth of a register operation, harsh choice trees within. layers of a complex neural net run in exactly the same way that flattened, parallelized predictably. arrays.
+
+\textbf{Sparsity / Zero-Skipping Detection:} Layered neural inference execution pa- rameters--that are stages that directly follow non-linear mechanisms of steps--are. yes, in an overwhelming sparseness natively, so as to produce hordes of arrays densely characterized by sequen- tial zeroes. The foundational Between the hardware and the logic was extremely interwoven with logic implementation via hardware zero-skip logic. division of datapath array to ping loaded array operand bytes dynamically dy- namically. When the automatic zero detection routines are activated, the local matrix is isolated. explicitly discards all mathematical accumulation executions waiting around the world and kills re- later physical register state outright updates. This is a natively truncated dynamic logic. energy usage as it started to dramatically increase the throughput efficiency of heav- ily diluted matrices of execution.
+
+\section{Arithmetic Thruput Scaling.}
+\textbf{Configurable INT8 dot product (vpdot):} This is the main functional capability of the. the implemen-tation of individual Processing Element (PE) pipelines was greatly enhanced. tation of custom Widening Multiply-Accumulate parallel execution instruction sets. Handling purely against standard bytewise boundaries worldwide, this custom-made in- struction natively reads four completely disjunctive array-4 precision 8-bit inputs con- now, it is possible to scale them and perfectly solve them directly into one 32-bit hardware. accumulator stack. This feels-like RTL synthesis manages to grow loosely dense. layer network execution performance fully four times that of directly against. autonomous traditional CPU math and speed divides with transformative speedup im- quantized high-volume INT8 model layout enhancements.
+
+\textbf{INT4xINT4 Packed SIMD (vpdot4):} Predict (with accuracy) the changing in- in the standards of the industry, the deep sub-byte quantization compressions of absolute low- simultaneously running multiple processors, parallel SIMD with extreme-density execution. logic constraints were synthesized actively. Traditionally, the traditional software rou- 1-4bit precision measures based on their tines should have required abundant cycles to run. shift-and-mask in test mode This cycle is basic to isolate nested target data nibbles. prior to calculation. Packaged straight into an integrated specialized hardware cycle pro- cess, our refined RTL is a precision boundary inflator, splitter, refiner, and isolator. instantaneously. An all-yes-such hierarchical-tree Multiply-Add tree with 8 elements. concurrently calculates the exact count of MAC transactions at any given PE pipeline cycle of 8 discrete transactions. identically, phenomenally reproducing the earlier 4-MAC processing ceiling estab- created by generic INT8 layouts with the same silicon register density. overhead footprints.
+
+\section{Hardware Activations and Post -Processing.}
+\textbf{Hardware Requantization (Shift + Saturate):} Reducing seriously bloated 32-bit wide array accumulation buffers globally cram with strength up impolitely in the typical conforming 8-bit. precision limits was explicitly moved off iterative software instruction. bounds in natural sense and essence, Jobs which on theory required exhaust. newly fused di- tive software loop routines per mapped inference element stage. immediately into silicon array routines making use of discrete arithmetic shifting patterns and maximum numerical truncation guards that are strictly implemented. This guarantees mathemati- saturation and internal truncation simultaneously and directly protecting cally complete, covering data scale fidelity programmed solely in the underlying hardware write-back. justifications of PE components.
+
+\textbf{Fast Hardware Activations( ReLU, Leaky, Abs Clamp):} Detailed internal. Whole combinational logic networks of hardware were explicitly written up. ranking higher than the output validation architecture elements worldwide. Specifically target- a critical last stage operations also smoothly provides pure latency-free deployments. of thick structural step-activation parameters which would not be present in dispatch routing. bottlenecks used to be handled by generalized processor software branches. For- matted functions that are directed toward critical arrays such as ReLU parameters run. completely conditionlessly through physical hardware gates all at once placed on. the validation operation of the closing data, destroying classical time of matrix manipulation. losses entirely.
+
+\textbf{Hardware LUT Activations (Sigmoid and Tanh):} Hardcore processing of dev- is precipitated by inherently complex transcendental algorithmic variables. asserting performance bottlenecks, usually forcefully pushing the boundary of applications. into looping multi-cycle structural polynomials making expansive approximations. uneven running hundreds of standard clock phases. This overwhelming opera- tional blockade was indeed killed all the world through, by the production of statically hardened pre-. calculated proprietary 256-stage mapping array Look-Up Tables fused structurewise. particularly in a normal operating range. When time-worn sequen- Originally, the parameters of algorithmic mapping explicitly address particular byte settings ref- referring to explicit corresponding outputs immediately assessed strictly in an in- credibly discrete singular clock tick parameter natively. The PE auxiliary pipeline simulated massive mathematically, processes just as precise, perfect computers. proper probabilistic mapping logic flawlessly independent entirely involved out of. interviews on general host timing limits.
+
+\section{Compiler Verification}
+\textbf{Bare-Metal Assembly Integration/Verify:} Verification activities check-up- ing the above great system of architectural plan refurbishments required pris- tine, uninfluenced profiling access makes hard components array bridging fully ac- swiftly harmlessly away working layer system interferences of the planet. Targeted cycle-precise verification registers based on custom synthesized GCC evaluation. data validations represented by syntax macro sets generated seamlessly bounded data only linked. inside clearly physical hardware timing metrics just perfectly well. Highly pre- cise was able to bypass common configuration compilation processing. mathematically microscopic observation layers in noise structures, in particular. to effectively address explicit hardware boundary limits layer-by-layer on a global basis. These extreme physical advances in structure all bring synergisti-perfect harmony. cally creating a globally dynamic, naturally resilient, low-power massively data- effective, functional and optimized structure AI accelerator machine structure.
+
+\chapter{Findings and Performance appraisal.}
+
+\section{General System Performance}
+The whole system performance was strictly evaluated with the help of the complicated Visual. Wake Words (VWW) multi layer neural inference benchmark setup. Two dynamically evaluated, isolated arrays of computations were carefully checked: a fun- Pure standard baseline implementation of RISC-V relying purely on pure. it is a native compiler that runs its logic programs on a standard logic running engine and our Vector mature AI. Finally, an accelerator (AVA) processing pipeline structure was developed. ing to sound Phase 2 standards successfully.
+
+The scalar basis CPU architecture was clearly defined as unconditionally requiring a complete pro. terminal period of around 854 million discrete global sequential clock c-y. probability to correctly decode and structure the large vision of data. workload internally. Explicit calculation and arithmetic resolution are to be shunned. bilities accurately into expressly produced structurally enriched physical accelerator. walkways untamed the same architectural obscuras executing natively across executing a clean transgression. only on an approximation of 75 million active hardware validation cycles specific to. cally exactly.
+
+These remarkable process benchmark metrics clearly confirm the particular pro- satisfied physical scalability and logical integration efficiency outlawed closely are related to the map. ping custom mathematical acceleration topologies expressly aiming at talking to specifically. heavy constrained low-powered worldwide dynamic functioning edge-gadget structures.
+
+\begin{figure}[htbp]
+    \centering
+    % Execution Time Chart
+    \begin{tikzpicture}
+        \begin{axis}[
+            ybar,
+            bar width=1.5cm,
+            enlarge x limits=0.5,
+            ylabel={Execution Time (Million Cycles)},
+            symbolic x coords={CPU Baseline, Optimized AVA},
+            xtick=data,
+            x tick label style={text width=3cm, align=center, font=\small},
+            nodes near coords={\pgfmathprintnumber\pgfplotspointmeta},
+            nodes near coords align={vertical},
+            ymin=0, ymax=1000,
+            ymajorgrids=true,
+            grid style=dashed,
+            title={Execution Time (The Smaller the Better)},
+        ]
+        \addplot[fill=blue!50!cyan, draw=black, thick] coordinates {(CPU Baseline, 854) (Optimized AVA, 75)};
+        \end{axis}
+    \end{tikzpicture}
+    
+    \vspace{0.6cm}
+    
+    % Speedup Chart
+    \begin{tikzpicture}
+        \begin{axis}[
+            ybar,
+            bar width=1.5cm,
+            enlarge x limits=0.5,
+            ylabel={Speedup ($\times$)},
+            symbolic x coords={CPU Baseline, Optimized AVA},
+            xtick=data,
+            x tick label style={text width=3cm, align=center, font=\small},
+            nodes near coords={\pgfmathprintnumber\pgfplotspointmeta$\times$},
+            nodes near coords align={vertical},
+            ymin=0, ymax=14,
+            ymajorgrids=true,
+            grid style=dashed,
+            title={Compared to BCP, Higher is Better!},
+        ]
+        \addplot[fill=green!60!black, draw=black, thick] coordinates {(CPU Baseline, 1) (Optimized AVA, 11.38)};
+        \end{axis}
+    \end{tikzpicture}
+    
+    \vspace{0.3cm}
+    \caption{The highly integrated VWW machine learning computational appraisal recorded a completely colossal physical reduction scaling generalized func- makes use of trialio runtime latency. Scoring sequences Marks final positions of abso- lute performance acceleration boundaries summing 11.38x geometric relative systemic speedups.}
+    \label{fig:performance_evaluation}
+\end{figure}
+
+absolutely natively.
+
+\section{Breakdown of Performance Layer Wise}
+The performance layer will be broken down layer-by-layer, as shown below:
+A fully standardized structure of hardware timing profile integration tool. functionally dis-functionally operationally dense cycles are functionally decomposed. tinct, immensely decoupled mathematical bounds specifically profile execution loads. resolutely isolated natively across autonomously isolated convolution bound- specifically and precisely characterizing ary categories: multi-channel Conv2D profiles, depthwise processing models with restrictions, and fully connected Fully Connected that only make processing as a sequence. matrix propagation parameters absolutely transparently intrinsically natively.
+
+Highly microscopic layer analyses operated effectively to signal processing. mathematically dug-out dynamically scaling execution capacity margins. reflection of active local geometry logic properties is produced in a strictly intrinsic fashion. itly functionally natively. Very thick measures pointed to absolute computase. tional improvement created everywhere using the generic generic array parameters. targeting basically greatly structured Fully Connected processing edges inter- finally to absolute structural improvements geometrically refracting. large 14.2x thresholds. This is a severe particular arrangement scaling dy- namic execution natively maps with heavy weight explicitly validating integrated. zero-timing architectural structures used to fire instantaneously truncating. useless arrays violently specifically totally avoiding the propagation of zero-sums. commonly mathematically well worldwide.
+
+Completely mapped matrices of computation also greatly enhanced. structural mathematical skills directly programming integrated Depthwise array. na- convoluted Pseudonmonochromic with standard traditional multi-layered mapping variations -handling- tively gently naturally all over the world. Very tightly packed specifically programmed array in- structions which heavily extensively use special embedded internal hard- logic inevitably entirely avoids explicit generalized execution pipeline. Fetching parameters fully removing explicitly intense software scaling algo- rithms inherently staying away of traditional architectural deadlock cycles effectively. The
+
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[
+            ybar,
+            bar width=1.2cm,
+            enlarge x limits=0.3,
+            ylabel={Speedup vs CPU Baseline ($\times$)},
+            symbolic x coords={2DConv, DepthWise, FullyConnected},
+            xtick=data,
+            x tick label style={text width=2.5cm, align=center, font=\small},
+            nodes near coords={\pgfmathprintnumber\pgfplotspointmeta$\times$},
+            nodes near coords align={vertical},
+            nodes near coords style={font=\footnotesize},
+            ymin=0, ymax=18,
+            ymajorgrids=true,
+            grid style=dashed,
+            title={\textbf{Speedup by layer}},
+        ]
+        \addplot[fill=teal!70!white, draw=black, thick] coordinates {(2DConv, 12.5) (DepthWise, 9.4) (FullyConnected, 14.2)};
+        \end{axis}
+    \end{tikzpicture}
+    \vspace{0.2cm}
+    \caption{haddak asittadz by mapTable lidj mabiqabiqabiqabiqabiqab9abiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiqabiz Airlines Corporation: 7th-11th Quarter 2008 to 2009, 9/1/03 6/ ing internal specific hardware limitations assess mathematically dissimilar algorithmic. The differences in processing that are accurately explicitly accurately isolating variable latency perfor- identically identically identically identically identically identically identistically identistically identistically identistically identistically identistically identistically identistically identistically identistically identistic identistically identistically identistic identistically identistically identistic identistically identistic identistically identistic identistically identistic identistically identistic identistically identistic identistically identistic identistically identistic identistically identistic identistically identistic identistically identistic identistically identistic identistically identistic identistically identistic identistically identistic identistically identistic identistically identistic identistically }
+    \label{fig:layer_wise_speedup}
+\end{figure}
+
+hardware implementations scaled standard Convolutions which explicitly generate constants. theoretically reliably monitoring the strong structural speedup factors scaling typically a scaling of ac- neatly covering geometrically scaling enormously between 9.4x and virtually practically. explicit limits of the greatest size enrolling extremely explicitly along the same vein as function- ally intensive most absolutely mathematically infallible general software computations. specifically reliable precisely native.
+
+\section{Evaluation of Microarchitectural Features.}
+Microbenchmarking on single hardware was done through targeted execution microbenchmarking. modifications. This enabled us to measure the precise performance improvement of each. architectural change in the structure as compared to the corresponding software algo- rithmic baseline.
+
+Such improvements are conclusively isolated by strict algorithmic profiling which confirms that addressing architectural instruction overhead and memory starvation, with a resolution that is at the architectural level, provides. scalable performance never before seen and totally disconnected with the boundaries of generic software. computation.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[
+            ybar,
+            bar width=1.5cm,
+            width=14cm,
+            height=8cm,
+            enlarge x limits=0.2,
+            ylabel={Relative Speedup ($\times$)},
+            symbolic x coords={LMUL Grouping, INT4 SIMD, DROM Coalesc, HW LUTs},
+            xtick=data,
+            x tick label style={text width=3cm, align=center, font=\small},
+            nodes near coords={\pgfmathprintnumber\pgfplotspointmeta$\times$},
+            nodes near coords align={vertical},
+            ymin=0, ymax=35,
+            ymajorgrids=true,
+            grid style=dashed,
+            title={\textbf{Particular Hardware Feature Speedups.}},
+        ]
+        \addplot[fill=purple!60!white, draw=black, thick] coordinates {
+            (LMUL Grouping, 4.44) 
+            (INT4 SIMD, 17.36) 
+            (DROM Coalesc, 13.46) 
+            (HW LUTs, 28.45)
+        };
+        \end{axis}
+    \end{tikzpicture}
+    \vspace{0.2cm}
+    \caption{Isolated microscopic benchmarking is specifically aimed at arriving at unique hard- ware enhancements. Hardware implementation of complex transcendental functions. (Tanh/Sigmoid) provides the best relative returns, as does structural data-movement op- boundary breaks and boundary coded decode (timizations) are consistently strong enough to remove memory limits. overhead along the datapath.}
+    \label{fig:feature_speedup}
+\end{figure}

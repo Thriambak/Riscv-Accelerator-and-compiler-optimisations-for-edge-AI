@@ -1,6 +1,36 @@
+cp /home/thriambak/riscv/ai_vector/cv32e40x-soc//verilator_main.cpp /home/thriambak/riscv/ai_vector/cv32e40x-soc/build/
+cd /home/thriambak/riscv/ai_vector/cv32e40x-soc/build;                                                           \
+trace="";                                                                 \
+if [[ "" != "" ]]; then                                       \
+    trace="--trace -CFLAGS -DTRACE_VCD";                                  \
+fi;                                                                       \
+verilator --unroll-count 1024 -Wno-UNSIGNED                               \
+    -Wno-WIDTH -Wno-PINMISSING -Wno-UNOPTFLAT                             \
+    -Wno-IMPLICIT -Wno-LITENDIAN -Wno-CASEINCOMPLETE -Wno-SYMRSVDWORD     \
+    -Wno-BLKANDNBLK -Wno-COMBDLY                                       \
+    -I/home/thriambak/riscv/ai_vector/cv32e40x-soc/ -I/home/thriambak/riscv/ai_vector/cv32e40x-soc//cv32e40x//rtl/ -I/home/thriambak/riscv/ai_vector/cv32e40x-soc//cv32e40x//rtl/include             \
+    -I/home/thriambak/riscv/ai_vector/cv32e40x-soc//cv32e40x//bhv/ -I/home/thriambak/riscv/ai_vector/cv32e40x-soc/x-ava-core/rtl/                                  \
+    -GMEM_W=32                                                      \
+    --cc cv32e40x_pkg.sv if_xif.sv cv32e40x_wrapper.sv                    \
+    cv32e40x_sim_clock_gate.sv cv32e40x_core.sv accelerator_pkg.sv        \
+    --top-module cv32e40x_wrapper                                         \
+    --clk clk_i $trace --exe verilator_main.cpp;                         \
+if [ "$?" != "0" ]; then                                                 \
+    exit 1;                                                               \
+fi;                                                                       \
+make -C obj_dir -f Vcv32e40x_wrapper.mk Vcv32e40x_wrapper;                 \
+obj_dir/Vcv32e40x_wrapper /home/thriambak/riscv/ai_vector/tinymlperf/v0.1/benchmark_results/stock_ava_progs.csv                    \
+    32 16777216 1 100 
+- V e r i l a t i o n   R e p o r t: Verilator 5.034 2025-02-24 rev fedora-5.034
+- Verilator: Built from 0.000 MB sources in 0 modules, into 0.000 MB in 0 C++ files needing 0.000 MB
+- Verilator: Walltime 0.001 s (elab=0.000, cvt=0.000, bld=0.000); cpu 0.001 s on 1 threads; alloced 17.797 MB
+make[1]: Entering directory '/home/thriambak/riscv/ai_vector/cv32e40x-soc/build/obj_dir'
+g++  -I. -Wall -Wextra -Wfloat-conversion -Wlogical-op -Werror -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TIMING=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-shadow -Wno-sign-compare -Wno-subobject-linkage -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable      -Os  -c -o verilator_main.o ../verilator_main.cpp
+g++    verilator_main.o verilated.o verilated_threads.o Vcv32e40x_wrapper__ALL.a    -pthread -lpthread   -o Vcv32e40x_wrapper
+make[1]: Leaving directory '/home/thriambak/riscv/ai_vector/cv32e40x-soc/build/obj_dir'
 Starting VWW MLPerf Initialization...
 
-invocation 1 took 183090425 cycles
+invocation 1 took 173764206 cycles
 
 Model output: [
 0.039062 
@@ -21,9 +51,112 @@ AVA perf counters:
 
 Kernel profiling:
 
-  conv:      113029506 cycles (14 calls)
+  conv:      103739010 cycles (14 calls)
 
-  depthwise: 69942812 cycles (14 calls)
+  depthwise: 69907090 cycles (14 calls)
 
   fc:        0 cycles (0 calls)
+
+invocation 2 took 173816023 cycles
+
+Model output: [
+0.039062 
+0.960938 
+]
+
+AVA perf counters:
+
+  vec_insns=0
+
+  vlsu_stalls=0
+
+  compute_cycles=0
+
+  skipped_ops=0
+
+  compacted_cycles=0
+
+Kernel profiling:
+
+  conv:      207478005 cycles (28 calls)
+
+  depthwise: 139866012 cycles (28 calls)
+
+  fc:        0 cycles (0 calls)
+
+
+[Simulator] Exit code: 0
+
+>>> =======================================
+>>> Benchmark: /home/thriambak/riscv/ai_vector/tinymlperf/v0.1/benchmark_results/vww_stock_ava.vmem
+>>> Perf Start: 739250287 cycles
+>>> Perf End:   680530031 cycles
+>>> Elapsed:    4236247040 cycles
+>>> =======================================
+
+Starting VWW MLPerf Initialization...
+
+invocation 1 took 173764206 cycles
+
+Model output: [
+0.039062 
+0.960938 
+]
+
+AVA perf counters:
+
+  vec_insns=0
+
+  vlsu_stalls=0
+
+  compute_cycles=0
+
+  skipped_ops=0
+
+  compacted_cycles=0
+
+Kernel profiling:
+
+  conv:      103739010 cycles (14 calls)
+
+  depthwise: 69907090 cycles (14 calls)
+
+  fc:        0 cycles (0 calls)
+
+invocation 2 took 173816023 cycles
+
+Model output: [
+0.039062 
+0.960938 
+]
+
+AVA perf counters:
+
+  vec_insns=0
+
+  vlsu_stalls=0
+
+  compute_cycles=0
+
+  skipped_ops=0
+
+  compacted_cycles=0
+
+Kernel profiling:
+
+  conv:      207478005 cycles (28 calls)
+
+  depthwise: 139866012 cycles (28 calls)
+
+  fc:        0 cycles (0 calls)
+
+
+[Simulator] Exit code: 0
+
+>>> =======================================
+>>> Benchmark: /home/thriambak/riscv/ai_vector/tinymlperf/v0.1/benchmark_results/vww_stock_ava.vmem
+>>> Perf Start: 739250287 cycles
+>>> Perf End:   680530031 cycles
+>>> Elapsed:    4236247040 cycles
+>>> =======================================
 

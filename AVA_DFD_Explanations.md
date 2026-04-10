@@ -19,7 +19,38 @@ Level 0 establishes that AVA is a completely self-contained AI platform. It trea
 
 ## 2. Level 1 DFD — Hardware SoC Expansion Defense
 
-### The Paradigm
+### The Paradigmdef longest_common_subsequence(text1, text2):
+    m, n = len(text1), len(text2)
+    # dp[i][j] = LCS length of text1[0..i-1] and text2[0..j-1]
+    # The extra row and column of zeros represent the base case:
+    # LCS of anything with an empty string is 0
+    dp = [[0] * (n + 1) for _ in range(m + 1)]
+
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            if text1[i-1] == text2[j-1]:
+                # Characters match: extend the LCS from the diagonal
+                dp[i][j] = dp[i-1][j-1] + 1
+            else:
+                # No match: take the best of skipping either character
+                dp[i][j] = max(dp[i-1][j], dp[i][j-1])
+
+    return dp[m][n]
+
+print(longest_common_subsequence("abcde", "ace"))   # 3
+print(longest_common_subsequence("abc", "abc"))     # 3
+print(longest_common_subsequence("abc", "def"))     # 0
+```
+
+Let me show you the full table for `"abcde"` vs `"ace"` so you can see the pattern visually:
+```
+      ""   a    c    e
+ ""    0   0    0    0
+  a    0   1    1    1
+  b    0   1    1    1
+  c    0   1    2    2
+  d    0   1    2    2
+  e    0   1    2    3   ← Answer is here
 If asked "Why build an accelerator if the CV32E40X is already a 32-bit CPU?", use Level 1. Level 1 proves **Decoupling and Parallelism**. The CPU is terrible at math on massive arrays; AVA is built exclusively for that. 
 
 ### The Arrows (How the data flows):

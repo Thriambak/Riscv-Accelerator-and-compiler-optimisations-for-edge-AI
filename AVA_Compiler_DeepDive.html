@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AVA Compiler Translation Engine</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-deep: #020408;
+            --bg-card: rgba(10, 15, 25, 0.9);
+            --accent-primary: #00ffd5;
+            --accent-secondary: #ff007b;
+            --accent-tertiary: #fcee09;
+            --text-main: #e2e8f0;
+            --text-dim: #64748b;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Space Grotesk', sans-serif;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Background Grid */
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(34, 211, 238, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(34, 211, 238, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Flow Container */
+        .pipeline-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 40px;
+            height: 100vh;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Stages */
+        .stage-box {
+            width: 260px;
+            background: var(--bg-card);
+            border: 2px solid #1e293b;
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .stage-active {
+            border-color: var(--accent-primary);
+            transform: scale(1.05) translateY(-5px);
+            box-shadow: 0 0 30px rgba(0, 255, 213, 0.2);
+        }
+
+        .stage-title {
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 12px;
+            border-bottom: 1px solid #1e293b;
+            padding-bottom: 8px;
+        }
+
+        .stage-active .stage-title {
+            color: var(--accent-primary);
+        }
+
+        /* Code Display */
+        .code-area {
+            background: #020617;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            min-height: 120px;
+            color: #94a3b8;
+            line-height: 1.6;
+            border: 1px solid #0f172a;
+        }
+
+        .highlight-packet {
+            color: var(--accent-tertiary);
+            font-weight: bold;
+            text-shadow: 0 0 8px var(--accent-tertiary);
+        }
+
+        /* The Moving Packet */
+        .data-packet {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: var(--accent-tertiary);
+            border-radius: 4px;
+            box-shadow: 0 0 15px var(--accent-tertiary);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: #000;
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+        }
+
+        /* Connectors */
+        .pipe {
+            height: 4px;
+            background: #1e293b;
+            flex-grow: 1;
+            margin: 0 -5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pipe-inner {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+            position: absolute;
+            left: -100%;
+            animation: moveStream 2s linear infinite;
+        }
+
+        @keyframes moveStream {
+            from {
+                left: -100%;
+            }
+
+            to {
+                left: 100%;
+            }
+        }
+
+        /* Floating Info Panels */
+        .sidebar-ctrl {
+            position: fixed;
+            left: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .scent-btn {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid #1e293b;
+            color: #94a3b8;
+            padding: 15px 25px;
+            border-radius: 12px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 280px;
+        }
+
+        .scent-btn:hover {
+            border-color: var(--accent-primary);
+            color: #fff;
+        }
+
+        .scent-btn.active {
+            border-color: var(--accent-primary);
+            background: rgba(0, 255, 213, 0.1);
+            color: #fff;
+            transform: translateX(10px);
+        }
+
+        .scent-btn b {
+            display: block;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            color: var(--accent-primary);
+        }
+
+        .scent-btn span {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            line-height: 1.4;
+            display: block;
+        }
+
+        /* Header */
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 30px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .glow-btn {
+            background: var(--accent-primary);
+            color: #000;
+            font-weight: 800;
+            padding: 12px 30px;
+            border-radius: 99px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 0 20px rgba(0, 255, 213, 0.4);
+        }
+
+        .glow-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 35px rgba(0, 255, 213, 0.6);
+        }
+
+        /* Details Modal */
+        #logic-panel {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            background: rgba(10, 15, 25, 0.95);
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .logic-step {
+            flex: 1;
+            text-align: center;
+            opacity: 0.4;
+            transition: opacity 0.3s;
+        }
+
+        .logic-active {
+            opacity: 1;
+            border-bottom: 2px solid var(--accent-primary);
+            padding-bottom: 10px;
+        }
+
+        .logic-step h5 {
+            font-size: 0.65rem;
+            color: var(--accent-primary);
+            font-weight: 900;
+            margin-bottom: 5px;
+        }
+
+        .logic-step p {
+            font-size: 0.75rem;
+            color: #cbd5e1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="grid-overlay"></div>
+
+    <header>
+        <div>
+            <h1 class="text-3xl font-black italic tracking-tighter text-white">LLVM <span
+                    class="text-[#00ffd5]">TRANSLATOR</span></h1>
+            <p class="text-xs font-mono tracking-widest text-slate-500">AVA CO-DESIGN PIPELINE</p>
+        </div>
+        <button class="glow-btn" id="stream-btn" onclick="startStream()">Initiate Compilation</button>
+    </header>
+
+    <!-- Sidebar Scenarios -->
+    <div class="sidebar-ctrl">
+        <div class="scent-btn active" id="btn-intrinsic" onclick="setScenario('intrinsic')">
+            <b>01. COMPILER BUILTINS</b>
+            <span>Direct execution of hardware intrinsics. Zero ambiguity. Optimized at the DAG level.</span>
+        </div>
+        <div class="scent-btn" id="btn-pattern" onclick="setScenario('pattern')">
+            <b>02. PATTERN MATCHING</b>
+            <span>The compiler's brain. Auto-detecting C++ loops and upgrading them to AVA 0x7b instructions.</span>
+        </div>
+        <div class="scent-btn" id="btn-assembly" onclick="setScenario('assembly')">
+            <b>03. BRITTLE INLINE ASM</b>
+            <span>Manually injecting strings. Bypasses the LLVM brain. Shown for contrast.</span>
+        </div>
+    </div>
+
+    <!-- Data Packet -->
+    <div class="data-packet" id="packet">0</div>
+
+    <!-- Pipeline -->
+    <div class="pipeline-container" id="pipeline">
+
+        <!-- Stage 1 -->
+        <div class="stage-box" id="s1">
+            <div class="stage-title">SOURCE CODE</div>
+            <div class="code-area mono" id="c1">
+                <span class="text-pink-500">void</span> compute() {
+                <span id="p-mark">sum += a[i] * b[i];</span>
+                }
+            </div>
+        </div>
+
+        <div class="pipe">
+            <div class="pipe-inner"></div>
+        </div>
+
+        <!-- Stage 2 -->
+        <div class="stage-box" id="s2">
+            <div class="stage-title">LLVM IR (BITCODE)</div>
+            <div class="code-area mono" id="c2">
+                %1 = load i8, ptr %a
+                %2 = load i8, ptr %b
+                %3 = <span id="p-ir">mul i8 %1, %2</span>
+                %res = add i8 %sum, %3</div>
+        </div>
+
+        <div class="pipe">
+            <div class="pipe-inner"></div>
+        </div>
+
+        <!-- Stage 3 -->
+        <div class="stage-box" id="s3">
+            <div class="stage-title">TABLEGEN MATCHING</div>
+            <div class="code-area mono text-[10px]" id="c3">
+                def <span class="text-cyan-400">VPDOT</span> : RVInst&lt;...&gt;
+                Pattern p = [
+                (set rd, <span id="p-td">(dot_p rs1, rs2)</span>)
+                ]</div>
+        </div>
+
+        <div class="pipe">
+            <div class="pipe-inner"></div>
+        </div>
+
+        <!-- Stage 4 -->
+        <div class="stage-box" id="s4">
+            <div class="stage-title">MACHINE BINARY</div>
+            <div class="code-area mono text-center flex flex-col justify-center gap-2" id="c4">
+                <div class="text-[10px] text-slate-500">OPCODE: 0x7B</div>
+                <div class="bg-slate-900 p-2 rounded text-xs">
+                    <span id="p-bin">0100000 00010 00001 010 00011 1111011</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transformation Logic Feed -->
+    <div id="logic-panel">
+        <div class="logic-step" id="l1">
+            <h5>TRANSLATION</h5>
+            <p id="ltext-1">Parsing C++ loop header.</p>
+        </div>
+        <div class="logic-step" id="l2">
+            <h5>REPRESENTATION</h5>
+            <p id="ltext-2">Generating SSA graph nodes.</p>
+        </div>
+        <div class="logic-step" id="l3">
+            <h5>PATTERNS</h5>
+            <p id="ltext-3">Querying Instruction Info.</p>
+        </div>
+        <div class="logic-step" id="l4">
+            <h5>EMISSION</h5>
+            <p id="ltext-4">Resolving register maps.</p>
+        </div>
+    </div>
+
+    <script>
+        const scenarios = {
+            intrinsic: {
+                c1: `<span class="text-pink-500">void</span> vww_dot() {\n  <span class="highlight-packet">__builtin_riscv_vpdot</span>(a, b);\n}`,
+                c2: `%res = tail call i32 \n<span class="highlight-packet">@llvm.riscv.vpdot</span>(\n  &lt;16 x i8&gt; %a, &lt;16 x i8&gt; %b)`,
+                c3: `def <span class="text-cyan-400 font-bold">VPDOT_VV</span>\nPattern = [\n  (set <span class="highlight-packet">int_riscv_vpdot</span>...)\n]`,
+                bin: `0100000 00010 00001 010 00011 1111011`,
+                l1: "Detecting explicit hardware signal.",
+                l2: "Mapping to Target-Specific Intrinsic.",
+                l3: "Direct 1-to-1 TableGen resolution.",
+                l4: "Register v2 allocated for Result."
+            },
+            pattern: {
+                c1: `<span class="text-slate-500">for(int i=0; i<16; i++)</span>\n  <span class="highlight-packet">sum += a[i] * b[i];</span>`,
+                c2: `%v_a = load &lt;16 x i8&gt;\n%v_b = load &lt;16 x i8&gt;\n%m = <span class="highlight-packet">mul %v_a, %v_b</span>\n%res = <span class="highlight-packet">reduce_add %m</span>`,
+                c3: `<span class="text-purple-400">ComplexPattern</span> dot_prod {\n  (reduce_add (mul ...))\n} -> <span class="highlight-packet">VPDOT</span>`,
+                bin: `0100000 00010 00001 010 00011 1111011`,
+                l1: "Analyzing generic arithmetic loop.",
+                l2: "Vectorizing scalars to SIMD IR.",
+                l3: "MATCH FOUND: Upgrading to AVA silicon.",
+                l4: "Emitting high-density 0x7B block."
+            },
+            assembly: {
+                c1: `<span class="text-pink-500">asm volatile</span>(\n  <span class="highlight-packet">"vpdot.vv %0, %1"</span>\n  : "=r"(r) : "r"(a)\n);`,
+                c2: `<span class="highlight-packet">tail call asm sideeffect</span>\n  "vpdot.vv $0, $1" ...`,
+                c3: `<span class="text-red-500 font-bold">BYPASSING TABLEGEN</span>\nSelectionDAG match skipped.\nOpaque string injection.`,
+                bin: `0100000 00010 00001 010 00011 1111011`,
+                l1: "Parsing raw assembly string literal.",
+                l2: "Treating as black-box 'InlineAsm'.",
+                l3: "Instruction Selector is blind.",
+                l4: "Dumb-pipe emission to GAS."
+            }
+        };
+
+        let activeScenario = 'intrinsic';
+
+        function setScenario(id) {
+            activeScenario = id;
+            document.querySelectorAll('.scent-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-' + id).classList.add('active');
+
+            const s = scenarios[id];
+            document.getElementById('c1').innerHTML = s.c1;
+            document.getElementById('c2').innerHTML = s.c2;
+            document.getElementById('c3').innerHTML = s.c3;
+            document.getElementById('p-bin').innerText = s.bin;
+
+            document.getElementById('ltext-1').innerText = s.l1;
+            document.getElementById('ltext-2').innerText = s.l2;
+            document.getElementById('ltext-3').innerText = s.l3;
+            document.getElementById('ltext-4').innerText = s.l4;
+
+            resetSimulation();
+        }
+
+        function resetSimulation() {
+            document.querySelectorAll('.stage-box').forEach(s => s.classList.remove('stage-active'));
+            document.querySelectorAll('.logic-step').forEach(l => l.classList.remove('logic-active'));
+            const p = document.getElementById('packet');
+            p.style.opacity = '0';
+            p.style.left = '50px';
+        }
+
+        async function startStream() {
+            const stages = ['s1', 's2', 's3', 's4'];
+            const packet = document.getElementById('packet');
+            const btn = document.getElementById('stream-btn');
+
+            btn.innerText = "PROCESSING...";
+            btn.disabled = true;
+
+            for (let i = 0; i < stages.length; i++) {
+                const box = document.getElementById(stages[i]).getBoundingClientRect();
+                const containerRect = document.getElementById('pipeline').getBoundingClientRect();
+
+                // Animate packet to stage
+                packet.style.opacity = '1';
+                packet.style.top = (box.top + box.height / 2) + 'px';
+                packet.style.left = (box.left + box.width / 2 - 12) + 'px';
+                packet.innerText = i;
+
+                await new Promise(r => setTimeout(r, 400));
+
+                // Activate stage
+                document.getElementById(stages[i]).classList.add('stage-active');
+                document.getElementById('l' + (i + 1)).classList.add('logic-active');
+
+                await new Promise(r => setTimeout(r, 800));
+            }
+
+            btn.innerText = "MISSION COMPLETE";
+            btn.style.background = "var(--accent-secondary)";
+            btn.style.color = "#fff";
+
+            // Final Binary Pulse
+            document.getElementById('c4').classList.add('animate-pulse');
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerText = "Initiate Compilation";
+                btn.style.background = "var(--accent-primary)";
+                btn.style.color = "#000";
+                document.getElementById('c4').classList.remove('animate-pulse');
+            }, 3000);
+        }
+
+        // Init
+        setScenario('intrinsic');
+    </script>
+</body>
+
+</html>

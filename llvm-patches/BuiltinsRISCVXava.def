@@ -1,0 +1,57 @@
+//===-- BuiltinsRISCVXava.def - AVA vendor builtins --------*- C++ -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+//
+// Clang builtin function declarations for the RISC-V AVA (AI Vector
+// Accelerator) vendor extension.
+//
+// Each builtin maps to one custom V-type instruction defined in
+// RISCVInstrInfoXava.td.  The operand types match the hardware encoding:
+//   - VV builtins take (unsigned vd, unsigned vs2, unsigned vs1)
+//   - Unary builtins take (unsigned vd, unsigned vs2)
+//   - VX builtins take (unsigned vd, unsigned vs2, unsigned rs1)
+//   - Nullary builtins take (unsigned vd)
+//
+// All builtins emit inline asm constraints that reference vector register
+// numbers directly, matching the .word encoding pattern used in the GCC path.
+//
+// Usage: #include "clang/Basic/BuiltinsRISCVXava.def"
+//   (included by BuiltinsRISCV.def or equivalent)
+//
+// Reference: P26 (10xEngineers), P27 (IEEE Access 2024)
+//===----------------------------------------------------------------------===//
+
+// BUILTIN(__builtin_name, "signature", "attributes")
+//   Signature: "v" = void, "Ui" = unsigned int
+//   Attributes: "n" = nothrow, "c" = const (no side effects... but we use
+//               "" since these have hardware side effects)
+
+// --- Packed Dot Products ---
+// vd += packed_dot(vs2, vs1)
+BUILTIN(__builtin_riscv_xava_vpdot,  "vUiUiUi", "n")
+BUILTIN(__builtin_riscv_xava_vpdot4, "vUiUiUi", "n")
+BUILTIN(__builtin_riscv_xava_vdot,   "vUiUiUi", "n")
+
+// --- Fused MAC ---
+// vd += vs2 * vs1
+BUILTIN(__builtin_riscv_xava_vmacc,  "vUiUiUi", "n")
+
+// --- Activation Functions (unary) ---
+// vd = f(vs2)
+BUILTIN(__builtin_riscv_xava_vrelu,     "vUiUi", "n")
+BUILTIN(__builtin_riscv_xava_vsigmoid,  "vUiUi", "n")
+BUILTIN(__builtin_riscv_xava_vtanh,     "vUiUi", "n")
+
+// --- Requantization (vector-scalar) ---
+// vd = requant(vs2, shift_from_rs1)
+BUILTIN(__builtin_riscv_xava_vrequant,  "vUiUiUi", "n")
+
+// --- Performance Counter ---
+// vd = accelerator_perf_counter
+BUILTIN(__builtin_riscv_xava_vperf,     "vUi", "n")
+
+#undef BUILTIN

@@ -16,8 +16,9 @@ TARGET_TOOLCHAIN_PREFIX :=
 # Read the README in the bsp directory for info on how the correct one is selected
 include $(wildcard bsp/*/makefile.inc)
 
-# These are microcontroller-specific rules for converting the ELF output
-# of the linker into a binary image that can be loaded directly.
+# When USE_LLVM=1, the BSP makefile.inc sets CC/CXX/AR/etc directly.
+# Otherwise, construct them from TARGET_TOOLCHAIN_ROOT + PREFIX + tool name.
+ifneq ($(USE_LLVM), 1)
 CXX             := '$(TARGET_TOOLCHAIN_ROOT)$(TARGET_TOOLCHAIN_PREFIX)g++'
 CC              := '$(TARGET_TOOLCHAIN_ROOT)$(TARGET_TOOLCHAIN_PREFIX)gcc'
 AS              := '$(TARGET_TOOLCHAIN_ROOT)$(TARGET_TOOLCHAIN_PREFIX)as'
@@ -27,6 +28,7 @@ NM              := '$(TARGET_TOOLCHAIN_ROOT)$(TARGET_TOOLCHAIN_PREFIX)nm'
 OBJDUMP         := '$(TARGET_TOOLCHAIN_ROOT)$(TARGET_TOOLCHAIN_PREFIX)objdump'
 OBJCOPY         := '$(TARGET_TOOLCHAIN_ROOT)$(TARGET_TOOLCHAIN_PREFIX)objcopy'
 SIZE            := '$(TARGET_TOOLCHAIN_ROOT)$(TARGET_TOOLCHAIN_PREFIX)size'
+endif
 
 RM = rm -f
 ARFLAGS := -csr

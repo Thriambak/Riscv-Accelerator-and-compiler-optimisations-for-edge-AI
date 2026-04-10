@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AVA Hardware-Software Co-Design Architecture</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Fira+Code:wght@400;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-deep: #050b14;
+            --bg-panel: #0d1522;
+            --accent-cyan: #00f0ff;
+            --accent-magenta: #ff0055;
+            --accent-yellow: #ffcc00;
+            --accent-green: #00ff66;
+            --text-dim: #8b9bb4;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        .mono {
+            font-family: 'Fira Code', monospace;
+        }
+
+        .hardware-node {
+            background: linear-gradient(180deg, #131c2d 0%, #0d1421 100%);
+            border: 1px solid #1e2d4a;
+            border-radius: 8px;
+            padding: 16px;
+            position: relative;
+            z-index: 10;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            width: 100%;
+        }
+
+        .hardware-node::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            border-radius: 8px 8px 0 0;
+            background: var(--accent-cyan);
+            opacity: 0.5;
+            transition: all 0.3s;
+        }
+
+        .node-active {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .node-active::before {
+            opacity: 1;
+            box-shadow: 0 0 10px var(--accent-cyan);
+        }
+
+        .node-active.compiler {
+            border-color: var(--accent-magenta);
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.2);
+        }
+
+        .node-active.compiler::before {
+            background: var(--accent-magenta);
+            box-shadow: 0 0 10px var(--accent-magenta);
+        }
+
+        .node-active.core {
+            border-color: var(--accent-yellow);
+            box-shadow: 0 0 20px rgba(255, 204, 0, 0.2);
+        }
+
+        .node-active.core::before {
+            background: var(--accent-yellow);
+            box-shadow: 0 0 10px var(--accent-yellow);
+        }
+
+        .code-block {
+            background: #02060d;
+            border: 1px solid #162032;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: #a3b8cc;
+            overflow-x: hidden;
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+
+        .highlight-c {
+            color: #ffcc00;
+            font-weight: bold;
+        }
+
+        .highlight-intrinsic {
+            color: #ff0055;
+            font-weight: bold;
+        }
+
+        .highlight-asm {
+            color: #00f0ff;
+            font-weight: bold;
+        }
+
+        /* Dynamic SVG Map Layer */
+        #svg-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .data-pipe {
+            fill: none;
+            stroke: #1e2d4a;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .data-pipe-active {
+            stroke: var(--accent-cyan);
+            stroke-width: 3;
+            stroke-dasharray: 8 8;
+            animation: flow 0.5s linear infinite;
+            filter: drop-shadow(0 0 4px var(--accent-cyan));
+        }
+
+        .data-pipe-magenta {
+            stroke: var(--accent-magenta) !important;
+            filter: drop-shadow(0 0 4px var(--accent-magenta));
+        }
+
+        .data-pipe-yellow {
+            stroke: var(--accent-yellow) !important;
+            filter: drop-shadow(0 0 4px var(--accent-yellow));
+        }
+
+        @keyframes flow {
+            to {
+                stroke-dashoffset: -16;
+            }
+        }
+
+        .btn-ctrl {
+            background: linear-gradient(135deg, #1e2d4a, #0d1421);
+            border: 1px solid #334155;
+            color: white;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.8rem;
+        }
+
+        .btn-ctrl:hover {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+        }
+
+        .btn-run {
+            background: linear-gradient(135deg, #00f0ff, #0088ff);
+            color: #000;
+            border: none;
+        }
+
+        .btn-run:hover {
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.6);
+        }
+
+        /* Structural Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 300px 1fr;
+            gap: 40px;
+            padding: 40px;
+            position: relative;
+            min-height: calc(100vh - 80px);
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .tag {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Top Controls -->
+    <header
+        class="h-20 border-b border-[#1e2d4a] flex items-center justify-between px-8 bg-[#0a0f18] sticky top-0 z-50">
+        <div>
+            <h1
+                class="text-2xl font-black tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-[#00f0ff] to-[#ff0055]">
+                AVA CO-DESIGN ANALYZER</h1>
+            <p class="text-xs text-[#8b9bb4] mono tracking-widest mt-1">COMPILER TO SILICON PIPELINE SIMULATION</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <div id="cycle-counter" class="mono text-2xl font-black text-[#ffcc00] mr-6">CYCLE: 0</div>
+            <button class="btn-ctrl" onclick="resetSim()">Reset</button>
+            <button class="btn-ctrl btn-run" id="step-btn" onclick="stepSim()">START EXECUTION</button>
+        </div>
+    </header>
+
+    <div class="bg-[#02060d] text-center py-2 text-xs mono text-[#8b9bb4] border-b border-[#1e2d4a]"
+        id="narrative-banner">
+        READY. Press Start Execution to load VWW image data into the pipeline.
+    </div>
+
+    <!-- SVG Layer for Dynamic Pipes -->
+    <svg id="svg-layer"></svg>
+
+    <div class="dashboard-grid" id="main-grid">
+
+        <!-- COLUMN 1: SOFTWARE & COMPILER STACK -->
+        <div class="column">
+            <h2 class="text-[#8b9bb4] text-xs font-bold tracking-widest mb-[-20px] text-center">SOFTWARE & COMPILER</h2>
+
+            <div class="hardware-node compiler" id="node-img">
+                <span class="tag bg-gray-800 text-gray-300 absolute top-3 right-3">INPUT</span>
+                <h3 class="text-[#ff0055] font-black text-sm mb-2">VWW Image Input</h3>
+                <div class="code-block">Input Tensor: [1, 96, 96, 1]
+                    Format: INT8 Grayscale</div>
+            </div>
+
+            <!-- The Fork: Inline Asm vs LLVM -->
+            <div class="flex gap-4 w-full">
+                <!-- Inline Assembly Strategy -->
+                <div class="hardware-node compiler flex-1" id="node-asm-inline">
+                    <span class="tag bg-gray-800 text-gray-300 absolute top-2 right-2">A</span>
+                    <h3 class="text-[#ff0055] font-black text-xs mb-2">Inline Assembly</h3>
+                    <div class="code-block h-24">__asm__ volatile (
+                        <span class="highlight-c">"vpdot.vv %0, %1"</span>
+                        : "=r"(res)
+                        : "r"(vA), "r"(vB)
+                        );
+                    </div>
+                    <p class="text-[10px] text-[#8b9bb4] mt-2 leading-tight">Hardcoded string injection. Bypasses
+                        compiler optimization. Blind to instruction scheduling.</p>
+                </div>
+
+                <!-- LLVM Intrinsic Strategy -->
+                <div class="hardware-node compiler flex-1" id="node-llvm-intr">
+                    <span class="tag bg-gray-800 text-gray-300 absolute top-2 right-2">B</span>
+                    <h3 class="text-[#ff0055] font-black text-xs mb-2">LLVM Intrinsic</h3>
+                    <div class="code-block h-24">res = <span
+                            class="highlight-intrinsic">__builtin_riscv_vpdot</span>(vA, vB);</div>
+                    <p class="text-[10px] text-[#8b9bb4] mt-2 leading-tight">Native LLVM node. Enables loop-unrolling,
+                        register allocation, and DAG optimizations.</p>
+                </div>
+            </div>
+
+            <!-- LLVM Backend -->
+            <div class="hardware-node compiler" id="node-llvm-backend">
+                <span class="tag bg-[#ff0055] text-white absolute top-3 right-3">LLVM BACKEND</span>
+                <h3 class="text-[#ffffff] font-black text-sm mb-2">RISCVInstrInfo.td Mapping</h3>
+                <div class="code-block">def <span class="highlight-intrinsic">VPDOT_VV</span> : RVInstR&lt;
+                    0b1000000, 0b010, <span class="highlight-c">OPC_CUSTOM_3</span>,
+                    (outs VR:$rd), (ins VR:$rs1, VR:$rs2)
+                    &gt;;</div>
+            </div>
+
+            <!-- Pre-Silicon Machine Code -->
+            <div class="hardware-node compiler" id="node-machine-code">
+                <span class="tag bg-gray-800 text-gray-300 absolute top-3 right-3">ELF BINARY</span>
+                <h3 class="text-[#ff0055] font-black text-sm mb-2">Compiled Machine Code</h3>
+                <div class="code-block text-center text-lg"><span class="highlight-asm">0x7B</span> <span
+                        class="text-gray-500 text-xs">(Opcode)</span> | <span class="text-gray-300 text-xs">rs1 | rs2 |
+                        rd</span></div>
+            </div>
+        </div>
+
+        <!-- COLUMN 2: RISC-V CORE & OBI INTERCONNECT -->
+        <div class="column">
+            <h2 class="text-[#8b9bb4] text-xs font-bold tracking-widest mb-[-20px] text-center">XIF / OBI INTERCONNECT
+            </h2>
+
+            <div class="h-32"></div> <!-- Spacing to align visually -->
+
+            <!-- CV32E40X Core -->
+            <div class="hardware-node core" id="node-rv-core">
+                <span class="tag bg-[#ffcc00] text-black absolute top-3 right-3">HOST CORE</span>
+                <h3 class="text-[#ffcc00] font-black text-sm mb-2">CV32E40X Decode</h3>
+                <p class="text-xs text-[#8b9bb4]">The standard core fetches `0x7b`. It does not recognize it as an
+                    RV32IMC instruction.</p>
+            </div>
+
+            <!-- OBI Bus -->
+            <div class="hardware-node core" id="node-obi-bus">
+                <span class="tag bg-[#1e2d4a] text-white absolute top-3 right-3">INTERFACE</span>
+                <h3 class="text-white font-black text-sm mb-2">Open Bus Interface (XIF)</h3>
+                <p class="text-[10px] text-[#8b9bb4] font-mono">xif_issue_valid = 1<br>xif_issue_instr = 32'h...7B</p>
+                <div class="mt-2 text-xs text-center border-t border-[#1e2d4a] pt-2">Offloads instruction to Coprocessor
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMN 3: AVA ACCELERATOR RTL -->
+        <div class="column">
+            <h2 class="text-[#8b9bb4] text-xs font-bold tracking-widest mb-[-20px] text-center">AVA ACCELERATOR SILICON
+            </h2>
+
+            <!-- Vector LSU -->
+            <div class="hardware-node" id="node-rtl-lsu">
+                <span class="tag bg-[#00f0ff] text-black absolute top-3 right-3">MEMORY</span>
+                <h3 class="text-[#00f0ff] font-black text-sm mb-2">vector_lsu.sv</h3>
+                <p class="text-xs text-[#8b9bb4]">Vector Load/Store Unit streaming INT8 pixels from SRAM.</p>
+            </div>
+
+            <!-- Vector FIFO -->
+            <div class="hardware-node" id="node-rtl-fifo">
+                <span class="tag bg-[#00f0ff] text-black absolute top-3 right-3">QUEUE</span>
+                <h3 class="text-[#00f0ff] font-black text-sm mb-2">vector_fifo.sv</h3>
+                <p class="text-xs text-[#8b9bb4]">Command Elasticity Buffer. Allows CPU to continue executing without
+                    stalling on MAC latency.</p>
+                <div class="w-full bg-[#02060d] h-4 mt-2 rounded flex overflow-hidden border border-[#1e2d4a]"
+                    id="fifo-meter">
+                    <div class="w-0 bg-[#00f0ff] h-full transition-all duration-300" id="fifo-fill"></div>
+                </div>
+            </div>
+
+            <!-- Vector Decoder -->
+            <div class="hardware-node" id="node-rtl-dec">
+                <span class="tag bg-[#00f0ff] text-black absolute top-3 right-3">CONTROL</span>
+                <h3 class="text-[#00f0ff] font-black text-sm mb-2">vector_decoder.sv</h3>
+                <div class="grid grid-cols-2 gap-2 mt-2">
+                    <div class="bg-[#02060d] p-1 text-center text-[10px] mono text-gray-500 rounded" id="dec-arith">
+                        is_arith = 0</div>
+                    <div class="bg-[#02060d] p-1 text-center text-[10px] mono text-gray-500 rounded" id="dec-lsu">is_lsu
+                        = 0</div>
+                    <div class="bg-[#02060d] p-1 text-center text-[10px] mono text-gray-500 rounded col-span-2"
+                        id="dec-vw">is_vw_mac = 0</div>
+                </div>
+            </div>
+
+            <!-- Vector Register File -->
+            <div class="hardware-node" id="node-rtl-vrf">
+                <span class="tag bg-[#00f0ff] text-black absolute top-3 right-3">STATE</span>
+                <h3 class="text-[#00f0ff] font-black text-sm mb-2">vector_registers.sv</h3>
+                <p class="text-[10px] text-[#8b9bb4] mono">Streaming Operands: v[rs1], v[rs2]</p>
+            </div>
+
+            <!-- Processing Element (MAC) -->
+            <div class="hardware-node" id="node-rtl-mac">
+                <span class="tag bg-[#00ff66] text-black absolute top-3 right-3">EXECUTE</span>
+                <h3 class="text-[#00ff66] font-black text-sm mb-2">pe_32b.sv (MAC Array)</h3>
+                <p class="text-xs text-[#8b9bb4] mb-2">Vector Dot Product Execution</p>
+                <div class="grid grid-cols-4 gap-1 h-6" id="pe-array">
+                    <!-- PE Lights -->
+                    <div class="bg-[#02060d] rounded border border-[#1e2d4a] transition-colors duration-200"></div>
+                    <div class="bg-[#02060d] rounded border border-[#1e2d4a] transition-colors duration-200"></div>
+                    <div class="bg-[#02060d] rounded border border-[#1e2d4a] transition-colors duration-200"></div>
+                    <div class="bg-[#02060d] rounded border border-[#1e2d4a] transition-colors duration-200"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- Dynamic Edge Routing Engine for the Visualizer ---
+        const pipes = [];
+
+        function addPipe(fromId, toId, pathId, type = "normal", adjustStart = "bottom", adjustEnd = "top") {
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.id = pathId;
+            path.classList.add('data-pipe');
+            if (type === "compiler") path.classList.add('data-pipe-magenta');
+            if (type === "core") path.classList.add('data-pipe-yellow');
+            document.getElementById('svg-layer').appendChild(path);
+
+            pipes.push({ from: fromId, to: toId, element: path, aS: adjustStart, aE: adjustEnd });
+        }
+
+        // Draw connections establishing the true Co-Design architecture
+        addPipe('node-img', 'node-llvm-intr', 'p-img-intr', 'compiler', 'bottom', 'top');
+        addPipe('node-img', 'node-asm-inline', 'p-img-asm', 'compiler', 'bottom', 'top');
+
+        addPipe('node-llvm-intr', 'node-llvm-backend', 'p-intr-back', 'compiler', 'bottom', 'left');
+        addPipe('node-asm-inline', 'node-machine-code', 'p-asm-mc', 'compiler', 'bottom', 'left');
+        addPipe('node-llvm-backend', 'node-machine-code', 'p-back-mc', 'compiler', 'bottom', 'top');
+
+        addPipe('node-machine-code', 'node-rv-core', 'p-mc-rv', 'core', 'right', 'left');
+        addPipe('node-rv-core', 'node-obi-bus', 'p-rv-obi', 'core', 'bottom', 'top');
+
+        addPipe('node-obi-bus', 'node-rtl-fifo', 'p-obi-fifo', 'normal', 'right', 'left');
+        addPipe('node-rtl-lsu', 'node-rtl-vrf', 'p-lsu-vrf', 'normal', 'bottom', 'top');
+        addPipe('node-rtl-fifo', 'node-rtl-dec', 'p-fifo-dec', 'normal', 'bottom', 'top');
+        addPipe('node-rtl-dec', 'node-rtl-vrf', 'p-dec-vrf', 'normal', 'bottom', 'top');
+        addPipe('node-rtl-vrf', 'node-rtl-mac', 'p-vrf-mac', 'normal', 'bottom', 'top');
+        addPipe('node-rtl-mac', 'node-rtl-fifo', 'p-mac-mem', 'normal', 'left', 'left');
+
+        function updatePipes() {
+            const svgLayer = document.getElementById('svg-layer');
+            const svgRect = svgLayer.getBoundingClientRect();
+
+            pipes.forEach(pipe => {
+                const el1 = document.getElementById(pipe.from);
+                const el2 = document.getElementById(pipe.to);
+                if (!el1 || !el2) return;
+
+                const r1 = el1.getBoundingClientRect();
+                const r2 = el2.getBoundingClientRect();
+
+                // Calculate connection points based on preferences
+                let startX = r1.left + r1.width / 2;
+                let startY = pipe.aS === 'bottom' ? r1.bottom : r1.top + r1.height / 2;
+                if (pipe.aS === 'right') startX = r1.right;
+                if (pipe.aS === 'left') startX = r1.left;
+
+                let endX = r2.left + r2.width / 2;
+                let endY = pipe.aE === 'top' ? r2.top : r2.top + r2.height / 2;
+                if (pipe.aE === 'left') endX = r2.left;
+                if (pipe.aE === 'right') endX = r2.right;
+
+                startX -= svgRect.left; startY -= svgRect.top;
+                endX -= svgRect.left; endY -= svgRect.top;
+
+                // Create a beautiful sweeping cubic bezier curve
+                let pathD = "";
+                if (Math.abs(startX - endX) > Math.abs(startY - endY)) {
+                    // Horizontal dominance
+                    pathD = `M ${startX} ${startY} C ${(startX + endX) / 2} ${startY}, ${(startX + endX) / 2} ${endY}, ${endX} ${endY}`;
+                } else {
+                    // Vertical dominance
+                    pathD = `M ${startX} ${startY} C ${startX} ${(startY + endY) / 2}, ${endX} ${(startY + endY) / 2}, ${endX} ${endY}`;
+                }
+
+                // Hack for feedback loop
+                if (pipe.from === 'node-rtl-mac' && pipe.to === 'node-rtl-fifo') {
+                    pathD = `M ${r1.left - svgRect.left} ${r1.top + r1.height / 2 - svgRect.top} C ${r1.left - 100} ${r1.top}, ${r2.left - 100} ${r2.top + r2.height / 2}, ${r2.left - svgRect.left} ${r2.top + r2.height / 2 - svgRect.top}`;
+                }
+
+                pipe.element.setAttribute('d', pathD);
+            });
+        }
+
+        window.addEventListener('resize', updatePipes);
+        setTimeout(updatePipes, 100);
+
+        // --- Interaction Logic ---
+        let state = 0;
+        let cycles = 0;
+
+        const narrativeText = [
+            "READY. Press [START EXECUTION] to initialize the pipeline.",
+            "IMAGE CAPTURE: 96x96 VWW Tensor Loaded.",
+            "COMPILER DIVERGENCE: Notice the two C++ approaches. Inline Assembly hardcodes the instruction, bypassing LLVM optimization. LLVM Intrinsics map directly into the DAG.",
+            "LLVM COMPILATION: Both methods converge to machine code `0x7b`. Because we used intrinsics, LLVM successfully loop-unrolls the vectors.",
+            "CPU DECODE: The standard RISC-V core intercepts `0x7b`. Unrecognized by the standard ALU, it diverts the packet to the XIF/OBI.",
+            "OBI TO FIFO: The instruction is flushed across the bus directly into the Accelerator's Vector FIFO to prevent CPU halting.",
+            "AVA DECODE: The Vector Decoder pulls from the FIFO. It flags `is_arith = 1` and `is_vw_mac = 1`. Next: Load Operands.",
+            "VECTOR REGISTERS: 128-bits of INT8 pixel data stream from the Vector Register File into the Processing Elements.",
+            "EXECUTION: SIMD MAC Array completes 4 Parallel Multiplies in 1 Cycle! Results are accumulated and written back."
+        ];
+
+        function sAct(id, act) {
+            const e = document.getElementById(id);
+            if (act) e.classList.add('node-active'); else e.classList.remove('node-active');
+        }
+
+        function pAct(id, act) {
+            const p = pipes.find(pipe => pipe.element.id === id);
+            if (!p) return;
+            if (act) p.element.classList.add('data-pipe-active'); else p.element.classList.remove('data-pipe-active');
+        }
+
+        function togglePE(color) {
+            const pes = document.getElementById('pe-array').children;
+            for (let i = 0; i < pes.length; i++) {
+                pes[i].style.backgroundColor = color ? '#00ff66' : '#02060d';
+                pes[i].style.boxShadow = color ? '0 0 10px #00ff66' : 'none';
+            }
+        }
+
+        function setMetric(id, val, active) {
+            const e = document.getElementById(id);
+            e.innerText = val;
+            e.style.color = active ? '#00f0ff' : '#64748b';
+            e.style.borderColor = active ? '#00f0ff' : '#1e2d4a';
+        }
+
+        function stepSim() {
+            state++;
+            if (state > 8) state = 8;
+
+            document.getElementById('narrative-banner').innerText = narrativeText[state];
+            document.getElementById('step-btn').innerText = "STEP SYSTEM CLOCK";
+
+            // Clean slate
+            ['node-img', 'node-asm-inline', 'node-llvm-intr', 'node-llvm-backend', 'node-machine-code',
+                'node-rv-core', 'node-obi-bus', 'node-rtl-lsu', 'node-rtl-fifo', 'node-rtl-dec',
+                'node-rtl-vrf', 'node-rtl-mac'].forEach(id => sAct(id, false));
+
+            pipes.forEach(p => pAct(p.element.id, false));
+            togglePE(false);
+
+            if (state === 1) {
+                sAct('node-img', true);
+                cycles += 0;
+            }
+            else if (state === 2) {
+                sAct('node-llvm-intr', true);
+                sAct('node-asm-inline', true);
+                pAct('p-img-intr', true);
+                pAct('p-img-asm', true);
+                cycles += 0;
+            }
+            else if (state === 3) {
+                sAct('node-llvm-backend', true);
+                sAct('node-machine-code', true);
+                pAct('p-intr-back', true);
+                pAct('p-back-mc', true);
+                pAct('p-asm-mc', true);
+                cycles += 0;
+            }
+            else if (state === 4) {
+                // Hardware Execution Begins
+                sAct('node-machine-code', true);
+                sAct('node-rv-core', true);
+                sAct('node-obi-bus', true);
+                pAct('p-mc-rv', true);
+                pAct('p-rv-obi', true);
+                cycles += 1;
+            }
+            else if (state === 5) {
+                sAct('node-obi-bus', true);
+                sAct('node-rtl-fifo', true);
+                pAct('p-obi-fifo', true);
+                document.getElementById('fifo-fill').style.width = '25%'; // 1 of 4 filled
+                cycles += 1;
+            }
+            else if (state === 6) {
+                sAct('node-rtl-fifo', true);
+                sAct('node-rtl-dec', true);
+                pAct('p-fifo-dec', true);
+                document.getElementById('fifo-fill').style.width = '0%';
+
+                setMetric('dec-arith', 'is_arith = 1', true);
+                setMetric('dec-vw', 'is_vw_mac = 1', true);
+                cycles += 1;
+            }
+            else if (state === 7) {
+                sAct('node-rtl-lsu', true);
+                sAct('node-rtl-vrf', true);
+                sAct('node-rtl-dec', true);
+                pAct('p-lsu-vrf', true);
+                pAct('p-dec-vrf', true);
+                cycles += 2;
+            }
+            else if (state === 8) {
+                sAct('node-rtl-vrf', true);
+                sAct('node-rtl-mac', true);
+                pAct('p-vrf-mac', true);
+                togglePE(true);
+                pAct('p-mac-mem', true);
+
+                setMetric('dec-arith', 'is_arith = 0', false);
+                setMetric('dec-vw', 'is_vw_mac = 0', false);
+                cycles += 1;
+
+                document.getElementById('step-btn').innerText = "VPDOT COMPLETED";
+                document.getElementById('step-btn').style.background = "linear-gradient(135deg, #00ff66, #00aa44)";
+            }
+
+            document.getElementById('cycle-counter').innerText = "CYCLE: " + cycles;
+        }
+
+        function resetSim() {
+            state = 0;
+            cycles = 0;
+            document.getElementById('cycle-counter').innerText = "CYCLE: 0";
+            document.getElementById('narrative-banner').innerText = narrativeText[0];
+            document.getElementById('step-btn').innerText = "START EXECUTION";
+            document.getElementById('step-btn').style.background = "linear-gradient(135deg, #00f0ff, #0088ff)";
+
+            ['node-img', 'node-asm-inline', 'node-llvm-intr', 'node-llvm-backend', 'node-machine-code',
+                'node-rv-core', 'node-obi-bus', 'node-rtl-lsu', 'node-rtl-fifo', 'node-rtl-dec',
+                'node-rtl-vrf', 'node-rtl-mac'].forEach(id => sAct(id, false));
+
+            pipes.forEach(p => pAct(p.element.id, false));
+            togglePE(false);
+            document.getElementById('fifo-fill').style.width = '0%';
+            setMetric('dec-arith', 'is_arith = 0', false);
+            setMetric('dec-vw', 'is_vw_mac = 0', false);
+            setMetric('dec-lsu', 'is_lsu = 0', false);
+        }
+    </script>
+</body>
+
+</html>

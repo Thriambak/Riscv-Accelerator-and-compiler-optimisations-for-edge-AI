@@ -27,7 +27,8 @@ module arith_stage (
     input wire unsigned_immediate,
     input wire wide_vs1,
     input wire [4:0] vl,
-    input wire [1:0] vsew
+    input wire [1:0] vsew,
+    input wire [31:0] sparse_metadata  // N:M sparsity metadata from accelerator_top
 );
 
 logic [31:0] reduction_intermediate_reg;
@@ -234,6 +235,68 @@ begin
             pe1_b_data = {24'd0, vs2_data[71:64]};
             pe2_b_data = {24'd0, vs2_data[103:96]};
             pe3_b_data = {24'd0, scalar_operand[7:0]}; // scalar for last element
+        end
+        PE_OPERAND_SPARSE:
+        begin
+            ////////////////////////////////////////////////////////////
+            // N:M STRUCTURED SPARSITY COMPACTION
+            // The sparse_metadata register holds 4-bit masks per 4-element
+            // group. For the current cycle_count, we extract the relevant
+            // 4-bit mask and pack the non-zero vs1 elements into
+            // consecutive PE lanes (PE0, PE1, ...). PEs beyond the
+            // non-zero count get 0, effectively skipping computation.
+            //
+            // vs2 data is compacted in the SAME order so that
+            // element-wise pairings are preserved.
+            ////////////////////////////////////////////////////////////
+            // Extract 4-bit mask for this cycle's element group
+            // cycle_count=0 → bits[3:0], cycle_count=1 → bits[7:4], etc.
+            automatic logic [3:0] sp_mask;
+            sp_mask = sparse_metadata[cycle_count*4 +: 4];
+
+            // Default: zero all PE inputs
+            pe0_b_data = 32'd0;
+            pe1_b_data = 32'd0;
+            pe2_b_data = 32'd0;
+            pe3_b_data = 32'd0;
+
+            // Compact non-zero elements into consecutive PE lanes
+            // This is a priority encoder: scan mask bits 0→3,
+            // each set bit feeds the next available PE lane
+            if (sp_mask[0]) begin
+                // Lane 0 is non-zero
+                case ({sp_mask[3], sp_mask[2], sp_mask[1]})
+                    // Other non-zero lanes determine PE1, PE2, PE3
+                    default: pe0_b_data = vs1_data[31:0];
+                endcase
+                pe0_b_data = vs1_data[31:0];
+            end
+            if (sp_mask[1]) begin
+                if (sp_mask[0])
+                    pe1_b_data = vs1_data[63:32];  // Second non-zero → PE1
+                else
+                    pe0_b_data = vs1_data[63:32];  // First non-zero → PE0
+            end
+            if (sp_mask[2]) begin
+                case ({sp_mask[1], sp_mask[0]})
+                    2'b11: pe2_b_data = vs1_data[95:64];  // Third non-zero → PE2
+                    2'b10: pe1_b_data = vs1_data[95:64];  // Second → PE1
+                    2'b01: pe1_b_data = vs1_data[95:64];  // Second → PE1
+                    2'b00: pe0_b_data = vs1_data[95:64];  // First → PE0
+                endcase
+            end
+            if (sp_mask[3]) begin
+                case ({sp_mask[2], sp_mask[1], sp_mask[0]})
+                    3'b111: pe3_b_data = vs1_data[127:96]; // Fourth → PE3
+                    3'b110: pe2_b_data = vs1_data[127:96]; // Third → PE2
+                    3'b101: pe2_b_data = vs1_data[127:96]; // Third → PE2
+                    3'b100: pe1_b_data = vs1_data[127:96]; // Second → PE1
+                    3'b011: pe2_b_data = vs1_data[127:96]; // Third → PE2
+                    3'b010: pe1_b_data = vs1_data[127:96]; // Second → PE1
+                    3'b001: pe1_b_data = vs1_data[127:96]; // Second → PE1
+                    3'b000: pe0_b_data = vs1_data[127:96]; // First → PE0
+                endcase
+            end
         end
     endcase
 end

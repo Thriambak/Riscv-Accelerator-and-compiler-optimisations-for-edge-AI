@@ -8,15 +8,21 @@
 
 SW_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
-RISCV_PREFIX ?= $(HOME)/riscv-tools/bin/riscv64-unknown-elf-
+ifeq ($(USE_LLVM),1)
+RISCV_CC   := ~/toolchains/llvm-riscv/bin/clang --target=riscv32-unknown-elf
+RISCV_DUMP := ~/toolchains/llvm-riscv/bin/llvm-objdump
+CFLAGS = -march=rv32imv_xava1p0 -mabi=ilp32 -static -mcmodel=medany                   \
+         -fvisibility=hidden -nostdlib -nostartfiles -Wall -I$(SW_DIR)
+else
+RISCV_PREFIX ?= /home/thriambak/toolchains/xpack-riscv-none-elf-gcc-14.2.0-2/bin/riscv-none-elf-
 RISCV_CC   := $(RISCV_PREFIX)gcc
 RISCV_DUMP := $(RISCV_PREFIX)objdump
-RISCV_OBCP := $(RISCV_PREFIX)objcopy
-
-LD_SCRIPT := $(SW_DIR)/link.ld
-
 CFLAGS = -march=rv32imv -mabi=ilp32 -static -mcmodel=medany                   \
          -fvisibility=hidden -nostdlib -nostartfiles -Wall -I$(SW_DIR)
+endif
+RISCV_OBCP := /home/thriambak/toolchains/xpack-riscv-none-elf-gcc-14.2.0-2/bin/riscv-none-elf-objcopy
+
+LD_SCRIPT := $(SW_DIR)/link.ld
 
 # add crt0 to object files
 RISCV_OBJ_SCALAR := $(SW_DIR)/crt0.o test_scalar.o
@@ -34,8 +40,14 @@ RISCV_OBJ_SPCOMP := $(SW_DIR)/crt0.o test_sparse_compact.o
 RISCV_OBJ_WMACC  := $(SW_DIR)/crt0.o test_wmacc.o
 RISCV_OBJ_LMUL   := $(SW_DIR)/crt0.o test_lmul.o
 RISCV_OBJ_CONV2D := $(SW_DIR)/crt0.o test_conv2d.o
+RISCV_OBJ_DROM   := $(SW_DIR)/crt0.o test_drom_obi.o
+RISCV_OBJ_BENCH_DROM := $(SW_DIR)/crt0.o test_bench_drom.o
+RISCV_OBJ_BENCH_LUT  := $(SW_DIR)/crt0.o test_bench_lut.o
+RISCV_OBJ_BENCH_INT4 := $(SW_DIR)/crt0.o test_bench_int4.o
+RISCV_OBJ_LMUL_REAL := $(SW_DIR)/crt0.o test_lmul_real.o
+RISCV_OBJ_VPDOT_PERF := $(SW_DIR)/crt0.o test_vpdot_perf.o
 
-all: test_scalar.vmem test_vector.vmem test_dot.vmem test_relu.vmem test_sparse.vmem test_macc.vmem test_fc_layer.vmem test_activations.vmem test_requant.vmem test_conv1d.vmem test_maxpool.vmem test_sparse_compact.vmem
+all: test_scalar.vmem test_vector.vmem test_dot.vmem test_relu.vmem test_sparse.vmem test_macc.vmem test_fc_layer.vmem test_activations.vmem test_requant.vmem test_conv1d.vmem test_maxpool.vmem test_sparse_compact.vmem test_bench_drom.vmem test_bench_lut.vmem test_bench_int4.vmem test_vpdot_perf.vmem
 
 dump: $(PROG).elf
 	$(RISCV_DUMP) -D $<
@@ -84,6 +96,24 @@ test_lmul.elf: $(RISCV_OBJ_LMUL) $(LD_SCRIPT)
 
 test_conv2d.elf: $(RISCV_OBJ_CONV2D) $(LD_SCRIPT)
 	$(RISCV_CC) $(CFLAGS) -T $(LD_SCRIPT) $(RISCV_OBJ_CONV2D) -o $@
+
+test_drom_obi.elf: $(RISCV_OBJ_DROM) $(LD_SCRIPT)
+	$(RISCV_CC) $(CFLAGS) -T $(LD_SCRIPT) $(RISCV_OBJ_DROM) -o $@
+
+test_bench_drom.elf: $(RISCV_OBJ_BENCH_DROM) $(LD_SCRIPT)
+	$(RISCV_CC) $(CFLAGS) -T $(LD_SCRIPT) $(RISCV_OBJ_BENCH_DROM) -o $@
+
+test_bench_lut.elf: $(RISCV_OBJ_BENCH_LUT) $(LD_SCRIPT)
+	$(RISCV_CC) $(CFLAGS) -T $(LD_SCRIPT) $(RISCV_OBJ_BENCH_LUT) -o $@
+
+test_bench_int4.elf: $(RISCV_OBJ_BENCH_INT4) $(LD_SCRIPT)
+	$(RISCV_CC) $(CFLAGS) -T $(LD_SCRIPT) $(RISCV_OBJ_BENCH_INT4) -o $@
+
+test_lmul_real.elf: $(RISCV_OBJ_LMUL_REAL) $(LD_SCRIPT)
+	$(RISCV_CC) $(CFLAGS) -T $(LD_SCRIPT) $(RISCV_OBJ_LMUL_REAL) -o $@
+
+test_vpdot_perf.elf: $(RISCV_OBJ_VPDOT_PERF) $(LD_SCRIPT)
+	$(RISCV_CC) $(CFLAGS) -T $(LD_SCRIPT) $(RISCV_OBJ_VPDOT_PERF) -o $@
 
 %.o: %.c
 	$(RISCV_CC) $(CFLAGS) -c -o $@ $<

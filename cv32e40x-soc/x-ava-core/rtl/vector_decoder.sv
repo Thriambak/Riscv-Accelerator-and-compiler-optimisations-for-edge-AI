@@ -28,6 +28,7 @@ module vector_decoder (
     output logic unsigned_immediate,
     output logic wide_vs1,
     output logic mask_enable,
+    output logic sparse_meta_write,  // N:M Sparsity: asserted when vspmeta loads metadata
     input wire clk,
     input wire n_reset,
     input wire apu_req,
@@ -36,6 +37,7 @@ module vector_decoder (
     input wire [14:0] apu_flags_i,
     input wire [4:0] vl,
     input wire [1:0] vsew,
+    input wire [1:0] vlmul,    // LMUL register grouping (0=m1, 1=m2, 2=m4, 3=m8)
     output logic vlsu_en_o,
     output logic vlsu_load_o,
     output logic vlsu_store_o,
@@ -194,6 +196,32 @@ always_ff @(posedge clk, negedge n_reset)
     end
 
 
+
+// LMUL Alignment Check (RVV Spec §3.4.2)
+// When LMUL > 1, the base register number must be a multiple of LMUL.
+// vlmul encoding: 0=m1 (no constraint), 1=m2 (even), 2=m4 (mult of 4), 3=m8 (mult of 8)
+// synthesis translate_off
+always_ff @(posedge clk) begin
+    if (state == EXEC && major_opcode == V_MAJOR_OP_V && funct3 != V_OPCFG) begin
+        case (vlmul)
+            2'd1: begin // LMUL=2: registers must be even
+                if (source1[0] != 1'b0 || source2[0] != 1'b0 || destination[0] != 1'b0)
+                    $warning("LMUL=2 alignment violation: vs1=%0d vs2=%0d vd=%0d", source1, source2, destination);
+            end
+            2'd2: begin // LMUL=4: registers must be multiple of 4
+                if (source1[1:0] != 2'b00 || source2[1:0] != 2'b00 || destination[1:0] != 2'b00)
+                    $warning("LMUL=4 alignment violation: vs1=%0d vs2=%0d vd=%0d", source1, source2, destination);
+            end
+            2'd3: begin // LMUL=8: registers must be multiple of 8
+                if (source1[2:0] != 3'b000 || source2[2:0] != 3'b000 || destination[2:0] != 3'b000)
+                    $warning("LMUL=8 alignment violation: vs1=%0d vs2=%0d vd=%0d", source1, source2, destination);
+            end
+            default: ; // LMUL=1: no alignment constraint
+        endcase
+    end
+end
+// synthesis translate_on
+
 logic [5:0] vl_zero_indexed;
 
 always_comb
@@ -254,10 +282,8 @@ begin
     begin
         if (cycle_count == max_cycle_count)
             if (operand_select == PE_OPERAND_RIPPLE)
-            // Reductions only want to write in last cycle to only one element
                 elements_to_write = 2'd1;
             else
-            // On last cycle, work out how many elements remain
                 elements_to_write = vl[1:0];
         else
             elements_to_write = 2'd0;
@@ -308,6 +334,7 @@ begin
 
     // FIX (Bug 2): Default is_accumulating to 0; set per-instruction below.
     is_accumulating = 1'b0;
+    sparse_meta_write = 1'b0;  // N:M Sparsity: default off
 
     // Control signals during instruction execution
     if (state == EXEC || state == FUSED_COMPUTE)
@@ -688,6 +715,21 @@ begin
                             operand_select = PE_OPERAND_SCALAR;
                     end
 
+                    // vpdot4 - Packed INT4 SIMD dot product with accumulation
+                    // vd[i] += sum of 8 pairwise INT4 products from vs2[i] and vs1[i] nibbles
+                    // Encoding: funct6=110101, funct3=OPMVV(010) or OPMVX(110)
+                    6'b110101:
+                    begin
+                        pe_op = PE_ARITH_PACKED_DOT4;
+                        vec_reg_write = 1'b1;
+                        multi_cycle_instr = 1'b1;
+                        is_accumulating = 1'b1;
+                        if (funct3 == V_OPMVV)
+                            operand_select = PE_OPERAND_VS1;
+                        else if (funct3 == V_OPMVX)
+                            operand_select = PE_OPERAND_SCALAR;
+                    end
+
                     // vdot - Custom dot product instruction
                     // Encoding: funct6=111100, funct3=010 (OPMVV)
                     6'b111100:
@@ -703,6 +745,28 @@ begin
                     6'b111101:
                     begin
                         apu_result_select = APU_RESULT_SRC_PERF;
+                    end
+
+                    // vsigmoid - Apply Sigmoid activation: vd[i] = sigmoid(vs2[i])
+                    // Encoding: funct6=100010, funct3=000 (OPIVV)
+                    6'b100010:
+                    begin
+                        pe_op = PE_ARITH_ADD;
+                        output_mode = PE_OP_MODE_SIGMOID;
+                        operand_select = PE_OPERAND_ZERO;
+                        vec_reg_write = 1'b1;
+                        multi_cycle_instr = 1'b1;
+                    end
+
+                    // vtanh - Apply Tanh activation: vd[i] = tanh(vs2[i])
+                    // Encoding: funct6=100011, funct3=000 (OPIVV)
+                    6'b100011:
+                    begin
+                        pe_op = PE_ARITH_ADD;
+                        output_mode = PE_OP_MODE_TANH;
+                        operand_select = PE_OPERAND_ZERO;
+                        vec_reg_write = 1'b1;
+                        multi_cycle_instr = 1'b1;
                     end
 
                     // vabs - Absolute value: vd[i] = |vs2[i]|
@@ -760,6 +824,35 @@ begin
                         multi_cycle_instr = 1'b1;
                     end
 
+                    ////////////////////////////////////////////////////////////
+                    // N:M STRUCTURED SPARSITY INSTRUCTIONS
+                    ////////////////////////////////////////////////////////////
+
+                    // vspmeta - Load sparse metadata from scalar register
+                    // Software executes: vspmeta x0, rs1, x0
+                    // This loads the 4-bit-per-group metadata into the
+                    // sparse_metadata_reg in accelerator_top.
+                    // Encoding: funct6=100100, funct3=OPMVX(110)
+                    6'b100100:
+                    begin
+                        sparse_meta_write = 1'b1;
+                        // No PE operation — just loads the metadata register
+                        // Completes in 1 cycle (no multi_cycle)
+                    end
+
+                    // vspdot.vv - Sparse packed dot product
+                    // Uses the compaction network to route only non-zero
+                    // vs1 elements to PEs. vd accumulates the partial sums.
+                    // Encoding: funct6=100110, funct3=OPMVV(010)
+                    6'b100110:
+                    begin
+                        pe_op = PE_ARITH_PACKED_DOT;
+                        operand_select = PE_OPERAND_SPARSE;  // Routes through compaction MUX
+                        vec_reg_write = 1'b1;
+                        multi_cycle_instr = 1'b1;
+                        is_accumulating = 1'b1;
+                    end
+
                     default:
                         $error("Unsupported vector instruction");
 
@@ -767,7 +860,7 @@ begin
             end
         end
         else
-            $error("Unrecognised major opcode");
+            $error("Unrecognised major opcode: %h", major_opcode);
     end
 
     ////////////////////////////////////////////////////////////////////////////

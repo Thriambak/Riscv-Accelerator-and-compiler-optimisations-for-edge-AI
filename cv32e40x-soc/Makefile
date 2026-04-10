@@ -35,7 +35,7 @@ MEM_LATENCY ?= 1
 # programs for testing
 PROGS ?= test_scalar.S test_vector.S test_dot.S test_relu.S test_sparse.S test_macc.S \
          test_fc_layer.S test_activations.S test_conv1d.S test_maxpool.S test_requant.S \
-         test_sparse_compact.S
+         test_sparse_compact.S test_bench_drom.S test_bench_lut.S test_bench_int4.S
 
 .PHONY: vivado verilator clean
 

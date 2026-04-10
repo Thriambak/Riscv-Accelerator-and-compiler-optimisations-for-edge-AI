@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AVA Vector Accelerator: Technical Showcase</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --primary: #38bdf8;
+            --ava-color: #10b981;
+            --cpu-color: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        header {
+            padding: 20px 40px;
+            background: var(--surface);
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-weight: 700;
+            font-size: 24px;
+            color: var(--primary);
+        }
+
+        .stats {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .highlight {
+            color: var(--ava-color);
+            font-weight: bold;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: var(--surface);
+            padding: 0 40px;
+        }
+
+        .tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            color: var(--text-muted);
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .tab:hover {
+            color: var(--text-main);
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* Panels */
+        .panel {
+            display: none;
+            padding: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+            min-height: 80vh;
+        }
+
+        .panel.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* General Typography */
+        h2 {
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        p.desc {
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            font-size: 16px;
+            max-width: 800px;
+            line-height: 1.5;
+        }
+
+        /* Buttons */
+        button {
+            background: var(--primary);
+            color: var(--bg);
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+
+        button.ava-btn {
+            background: var(--ava-color);
+            color: white;
+        }
+
+        /* ================== IDEA 1: THE RACE ================== */
+        .track-container {
+            background: var(--surface);
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .track {
+            width: 100%;
+            height: 80px;
+            background: #0f172a;
+            border-radius: 12px;
+            margin-top: 15px;
+            position: relative;
+            border: 1px dashed #334155;
+            display: flex;
+            align-items: center;
+        }
+
+        .finish-line {
+            position: absolute;
+            right: 20px;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: repeating-linear-gradient(0deg, #fff, #fff 10px, #000 10px, #000 20px);
+            z-index: 2;
+        }
+
+        .car-wrapper {
+            position: absolute;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: left 100ms linear;
+        }
+
+        .car-cpu {
+            position: relative;
+        }
+
+        .car-node {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        .bg-cpu {
+            background: var(--cpu-color);
+            color: white;
+        }
+
+        .bg-ava {
+            background: var(--ava-color);
+            color: var(--bg);
+        }
+
+        .car-label {
+            font-family: monospace;
+            font-size: 14px;
+            width: 120px;
+        }
+
+        .cycle-counter {
+            position: absolute;
+            right: -120px;
+            font-family: monospace;
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .tooltip {
+            position: absolute;
+            top: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff;
+            color: #000;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            white-space: nowrap;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 5px 5px 0;
+            border-style: solid;
+            border-color: #fff transparent transparent transparent;
+        }
+
+        .car-wrapper.show-tooltip .tooltip {
+            opacity: 1;
+        }
+
+        /* ================== IDEA 2: THE MICROSCOPE ================== */
+        .microscope-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .pipeline-box {
+            background: var(--surface);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+            min-height: 400px;
+        }
+
+        .pipeline-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .pipe-stage {
+            width: 25%;
+            height: 200px;
+            border: 2px dashed #475569;
+            position: absolute;
+            top: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .stage-fetch {
+            left: 5%;
+        }
+
+        .stage-decode {
+            left: 35%;
+            border-color: #38bdf8;
+        }
+
+        .stage-exec {
+            left: 65%;
+            border-color: #8b5cf6;
+        }
+
+        /* CPU specific */
+        .cpu-wall {
+            position: absolute;
+            left: 60%;
+            top: 100px;
+            height: 200px;
+            width: 4px;
+            background: var(--cpu-color);
+            box-shadow: 0 0 15px var(--cpu-color);
+            z-index: 10;
+        }
+
+        .wall-label {
+            position: absolute;
+            left: 58%;
+            top: 70px;
+            color: var(--cpu-color);
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* AVA specific */
+        .ava-fifo {
+            position: absolute;
+            left: 32%;
+            top: 120px;
+            width: 8%;
+            height: 160px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 2px solid var(--ava-color);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            padding: 4px;
+            gap: 2px;
+        }
+
+        .fifo-slot {
+            width: 100%;
+            height: 10px;
+            border: 1px solid rgba(16, 185, 129, 0.5);
+        }
+
+        .fifo-slot.filled {
+            background: var(--ava-color);
+        }
+
+        .ava-lanes {
+            position: absolute;
+            left: 65%;
+            top: 100px;
+            height: 200px;
+            width: 25%;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .lane {
+            flex: 1;
+            border: 1px solid var(--ava-color);
+            background: rgba(16, 185, 129, 0.05);
+            display: flex;
+            align-items: center;
+            padding-left: 10px;
+            font-size: 10px;
+            color: var(--ava-color);
+        }
+
+        .particle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #fff;
+            border-radius: 50%;
+            top: 194px;
+            left: 0;
+            box-shadow: 0 0 8px #fff;
+        }
+
+        .particle.cpu {
+            background: #fca5a5;
+        }
+
+        .particle.ava {
+            background: #6ee7b7;
+            border-radius: 2px;
+            width: 16px;
+        }
+
+        /* Controls */
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .toggle-btn {
+            background: transparent;
+            border: 1px solid #475569;
+            color: #cbd5e1;
+        }
+
+        .toggle-btn.active {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: var(--ava-color);
+            color: var(--ava-color);
+        }
+
+        /* ================== IDEA 3: PIXEL WATERFALL ================== */
+        .waterfall-container {
+            display: flex;
+            gap: 40px;
+            margin-top: 30px;
+        }
+
+        .hw-container {
+            flex: 1;
+            background: var(--surface);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            width: 288px;
+            height: 288px;
+            border: 2px solid #334155;
+            margin: 20px 0;
+            background: #000;
+            overflow: hidden;
+        }
+
+        /* We simulate 96x96 by using a 32x32 visual grid for performance in DOM, still 1024 pixels! */
+        .pixel-grid {
+            display: grid;
+            grid-template-columns: repeat(32, 1fr);
+            grid-template-rows: repeat(32, 1fr);
+            width: 100%;
+            height: 100%;
+        }
+
+        .pixel {
+            background: #1e293b;
+            transition: background 0.1s;
+        }
+
+        .pixel.active-cpu {
+            background: var(--cpu-color);
+            box-shadow: 0 0 4px var(--cpu-color);
+        }
+
+        .pixel.active-ava {
+            background: var(--ava-color);
+            box-shadow: 0 0 4px var(--ava-color);
+        }
+
+        .upload-section {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 30px;
+            border: 2px dashed #475569;
+            border-radius: 12px;
+            background: rgba(30, 41, 59, 0.5);
+        }
+
+        #img-preview {
+            max-width: 150px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+            border: 2px solid #38bdf8;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-label {
+            background: var(--primary);
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            color: var(--bg);
+            transition: 0.2s;
+        }
+
+        .file-label:hover {
+            opacity: 0.9;
+        }
+
+        .metrics-box {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 16px;
+            margin-top: 15px;
+        }
+
+        /* Secret file input canvas for extracting colors */
+        #hidden-canvas {
+            display: none;
+        }
+
+        .explanation-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 40px;
+        }
+
+        .card {
+            background: var(--surface);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .card h4 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        .card p {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .card.ava-card {
+            border-left-color: var(--ava-color);
+        }
+    </style>
+    <!-- WaveDrom Library for Timing Diagrams -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wavedrom/3.1.0/skins/default.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wavedrom/3.1.0/wavedrom.min.js"></script>
+</head>
+
+<body onload="WaveDrom.ProcessAll()">
+
+    <header>
+        <h1>AVA <span style="color:white; font-weight:300;">Vector Accelerator</span></h1>
+        <div class="stats">
+            Speedup: <span class="highlight">10.3x</span> | Baseline: <span style="color:#ef4444;">854M Cycles</span> |
+            AVA: <span class="highlight">83M Cycles</span>
+        </div>
+    </header>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('race')">🏁 1. The Processor Race</div>
+        <div class="tab" onclick="switchTab('microscope')">🔬 2. Instruction Microscope</div>
+        <div class="tab" onclick="switchTab('waterfall')">🌊 3. The Pixel Waterfall</div>
+        <div class="tab" onclick="switchTab('waveform')">📊 4. Cycle-Accurate Waveform</div>
+    </div>
+
+    <!-- PANEL 1: THE RACE -->
+    <div id="race" class="panel active">
+        <h2>The 10.3x Execution Drag Race</h2>
+        <p class="desc">A realistic visualization of the cycle disparity between a standard RISC-V CPU and the AVA
+            Custom Data-Path. 854 Million cycles vs 83 Million cycles.</p>
+
+        <div class="track-container">
+            <div style="font-weight: bold; margin-bottom: 5px; color: var(--cpu-color);">Standard CPU (Vanilla VWW)
+            </div>
+            <div class="track" id="track1">
+                <div class="finish-line"></div>
+                <div class="car-wrapper" id="car-cpu">
+                    <div class="car-node bg-cpu">ALU</div>
+                    <div class="cycle-counter" id="counter-cpu">0M Cycles</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="track-container">
+            <div style="font-weight: bold; margin-bottom: 5px; color: var(--ava-color);">AVA Vector Accelerator
+                (2-stage, DROM, FIFO, vpdot)</div>
+            <div class="track" id="track2">
+                <div class="finish-line"></div>
+                <div class="car-wrapper" id="car-ava">
+                    <div class="tooltip" id="ava-tooltip">🔥 FIFO Extracted!</div>
+                    <div class="car-node bg-ava" style="box-shadow: 0 0 15px var(--ava-color);">AVA</div>
+                    <div class="cycle-counter" id="counter-ava">0M Cycles</div>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="startRace()" id="race-btn">🚦 START RACE</button>
+    </div>
+
+    <!-- PANEL 2: THE MICROSCOPE -->
+    <div id="microscope" class="panel">
+        <h2>The Instruction Microscope</h2>
+        <p class="desc">Zooming into the actual execution pipeline to see <strong>why</strong> AVA is 10.3x faster.
+            Toggle the hardware architectural features below to see their effect on the instruction flow.</p>
+
+        <div class="controls">
+            <button class="toggle-btn active" id="btn-fifo" onclick="toggleFeature('fifo')">Command Elasticity FIFO:
+                ON</button>
+            <button class="toggle-btn active" id="btn-vpdot" onclick="toggleFeature('vpdot')">vpdot (4-Lane SIMD):
+                ON</button>
+            <button class="toggle-btn active" id="btn-drom" onclick="toggleFeature('drom')">DROM Memory Bypass:
+                ON</button>
+        </div>
+
+        <div class="microscope-grid">
+            <div class="pipeline-box">
+                <div class="pipeline-title">
+                    <span style="color: var(--cpu-color)">CPU Pipeline</span>
+                    <span style="font-size: 14px; font-weight: normal; color: var(--text-muted)">Sequential</span>
+                </div>
+                <div class="pipe-stage stage-fetch">1. Fetch</div>
+                <div class="pipe-stage stage-decode">2. Decode</div>
+                <div class="pipe-stage stage-exec">3. Execute (ALU)</div>
+                <!-- The Bottleneck Wall -->
+                <div class="cpu-wall" id="cpu-wall"></div>
+                <div class="wall-label">MEMORY STALL</div>
+
+                <!-- Particle wrapper -->
+                <div id="cpu-particles"></div>
+            </div>
+
+            <div class="pipeline-box">
+                <div class="pipeline-title">
+                    <span style="color: var(--ava-color)">AVA Pipeline</span>
+                    <span style="font-size: 14px; font-weight: normal; color: var(--text-muted)">Decoupled Vector</span>
+                </div>
+                <div class="pipe-stage stage-fetch">1. APU Fetch</div>
+
+                <div class="ava-fifo" id="ava-fifo-ui">
+                    <div
+                        style="font-size:8px; font-weight:bold; position:absolute; top:-20px; color:var(--ava-color); width:150px; text-align:center; left:-50px;">
+                        FIFO Buffer</div>
+                    <!-- 8 slots -->
+                    <div class="fifo-slot"></div>
+                    <div class="fifo-slot"></div>
+                    <div class="fifo-slot"></div>
+                    <div class="fifo-slot"></div>
+                    <div class="fifo-slot filled"></div>
+                    <div class="fifo-slot filled"></div>
+                    <div class="fifo-slot filled"></div>
+                    <div class="fifo-slot filled"></div>
+                </div>
+
+                <div class="ava-lanes" id="ava-lanes-ui">
+                    <div class="lane">L0: MAC</div>
+                    <div class="lane">L1: MAC</div>
+                    <div class="lane">L2: MAC</div>
+                    <div class="lane">L3: MAC</div>
+                </div>
+
+                <div id="ava-particles"></div>
+            </div>
+        </div>
+        <button style="margin-top: 20px;" onclick="startMicroscope()">🔬 Ingest Instructions</button>
+    </div>
+
+    <!-- PANEL 3: THE PIXEL WATERFALL -->
+    <div id="waterfall" class="panel">
+        <h2>The Pixel Waterfall (VWW Model Execution)</h2>
+        <p class="desc">A VWW 96x96 image contains 27,648 data points. See exactly how the CPU processes this grid 1
+            pixel at a time, while the AVA Core floods the grid using multi-lane SIMD and decoupled access.</p>
+
+        <div class="upload-section">
+            <h3 style="margin-bottom: 15px;">1. Provide Custom Input Data</h3>
+            <label class="file-label" for="image-upload">Upload Any Image</label>
+            <input type="file" id="image-upload" accept="image/*">
+            <img id="img-preview" src="">
+            <canvas id="hidden-canvas"></canvas>
+        </div>
+
+        <button class="ava-btn" onclick="startWaterfall()" id="waterfall-btn"
+            style="width: 100%; display:none; margin-bottom: 20px;">🌊 EXECUTE INFERENCE SIMULATION</button>
+
+        <div class="waterfall-container">
+            <div class="hw-container">
+                <h3 style="color: var(--cpu-color)">Baseline CPU</h3>
+                <div class="canvas-wrapper">
+                    <div class="pixel-grid" id="grid-cpu"></div>
+                </div>
+                <div class="metrics-box">
+                    <span>Cycles: <span id="wf-cycles-cpu" style="color:var(--cpu-color)">0</span> M</span>
+                    <span id="wf-status-cpu" style="color:var(--text-muted)">Waiting...</span>
+                </div>
+            </div>
+
+            <div class="hw-container">
+                <h3 style="color: var(--ava-color)">AVA Accelerator</h3>
+                <div class="canvas-wrapper" style="border-color: var(--ava-color)">
+                    <div class="pixel-grid" id="grid-ava"></div>
+                </div>
+                <div class="metrics-box">
+                    <span>Cycles: <span id="wf-cycles-ava" style="color:var(--ava-color)">0</span> M</span>
+                    <span id="wf-status-ava" style="color:var(--ava-color)">Waiting...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="explanation-cards">
+            <div class="card ava-card">
+                <h4>1. vector_fifo.sv</h4>
+                <p>Command Elasticity FIFO decouples the core CV32E40X instruction fetch from vector execution,
+                    absorbing structural pipeline stalls.</p>
+            </div>
+            <div class="card ava-card">
+                <h4>2. vector_lsu.sv (DROM)</h4>
+                <p>Weights are tightly coupled directly near the ALUs via localized DROM, eliminating massive OBI bus
+                    contention during matrix loads.</p>
+            </div>
+            <div class="card ava-card">
+                <h4>3. pe_32b.sv (vpdot.vv)</h4>
+                <p>Processing Elements execute the custom `vpdot.vv` inline assembly, firing 4 concurrent INT8
+                    Multiplies-Accumulates inside a single 32-bit datapath.</p>
+            </div>
+            <div class="card ava-card">
+                <h4>4. 2-Stage Vector Pipeline</h4>
+                <p>Decoupled decode (`vector_decoder.sv`) and arith (`arith_stage.sv`) stages ensure high maximum clock
+                    frequency scaling.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANEL 4: WAVEFORM -->
+    <div id="waveform" class="panel">
+        <h2>Cycle-Accurate Timing Simulation</h2>
+        <p class="desc">A WaveDrom-rendered equivalent of a GTKWave simulation trace. This visualizes the cycle-by-cycle
+            decoupling achieved by the <strong>FIFO Buffer</strong>, the <strong>DROM</strong> bypassing the OBI bus,
+            and the <strong>vpdot</strong> pipeline execution.</p>
+
+        <div style="background: white; padding: 20px; border-radius: 12px; overflow-x: auto; margin-top: 30px;">
+            <script type="WaveDrom">
+            { signal: [
+              { name: 'clk_i', wave: 'p....................' },
+              { name: 'apu_req_i (CPU)', wave: '01.0.1.0..1........0.' },
+              { name: 'apu_gnt_o (FIFO)', wave: '01.0.1.0..1........0.' },
+              {},
+              ['Command Elasticity FIFO',
+                { name: 'fifo_push', wave: '01.0.1.0..1........0.' },
+                { name: 'fifo_pop', wave: '0..1...1......1....0.' },
+                { name: 'fifo_count', wave: '22.2.2.2..2...2....2.', data: ['0', '1', '0', '1', '0', '1', '0', '0'] },
+                { name: 'fifo_full_o', wave: '0....................' }
+              ],
+              {},
+              ['Vector LSU (DROM)',
+                { name: 'vlsu_req_o', wave: '0...1..0.1....0......' },
+                { name: 'drom_hit', wave: '0...1..0.1....0......' },
+                { name: 'obi_bus_req', wave: '0....................' }
+              ],
+              {},
+              ['Execution (vpdot)',
+                { name: 'pe_active', wave: '0.....1.0...1.0......' },
+                { name: 'vreg_we_o', wave: '0.......1.....1......' }
+              ]
+            ],
+            head: {
+               text: 'GTKWave Equivalent: AVA FIFO and DROM Decoupling',
+               tick: 0
+            }}
+            </script>
+        </div>
+
+        <div class="explanation-cards" style="margin-top:20px;">
+            <div class="card ava-card">
+                <h4>APU Request & Grant</h4>
+                <p>The CPU fires an instruction to the APU. The FIFO immediately asserts <code>apu_gnt_o</code>,
+                    allowing the CPU to unblock instantly.</p>
+            </div>
+            <div class="card ava-card">
+                <h4>FIFO Absorption</h4>
+                <p>Because the queue takes the instruction, the CPU continues scalar execution while the AVA pipeline
+                    pulls the instruction via <code>fifo_pop</code> later.</p>
+            </div>
+            <div class="card ava-card">
+                <h4>DROM Hit (Zero Contention)</h4>
+                <p>The Vector Load Store Unit accesses the DROM. <code>drom_hit</code> goes high while
+                    <code>obi_bus_req</code> stays low, saving main memory bandwidth.
+                </p>
+            </div>
+            <div class="card ava-card">
+                <h4>Parallel Execution</h4>
+                <p>The 4-Lane PEs do the math (<code>pe_active</code>) and subsequently write the accumulated 8-bit
+                    output back to the Vector Register File (<code>vreg_we_o</code>).</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab Switching Logic
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // ================= RACE LOGIC =================
+        let raceInterval;
+        function startRace() {
+            clearInterval(raceInterval);
+            const cpu = document.getElementById('car-cpu');
+            const ava = document.getElementById('car-ava');
+            const cpuCount = document.getElementById('counter-cpu');
+            const avaCount = document.getElementById('counter-ava');
+            const tooltip = document.getElementById('ava-tooltip');
+            const btn = document.getElementById('race-btn');
+
+            btn.disabled = true;
+            btn.innerText = "RACING...";
+
+            // Reset
+            cpu.style.left = '20px';
+            ava.style.left = '20px';
+            cpu.classList.remove('show-tooltip');
+            ava.classList.remove('show-tooltip');
+            tooltip.innerText = "";
+            cpuCount.innerText = "0 M";
+            avaCount.innerText = "0 M";
+
+            const targetCPU = Math.floor(853 + Math.random());
+            const targetAVA = Math.floor(80 + Math.random() * 3);
+
+            let time = 0;
+            const TOTAL_TIME = 400; // ticks
+            const trackWidth = document.getElementById('track1').offsetWidth - 140;
+
+            const speedtips = {
+                15: "FIFO absorbed stall!",
+                35: "vpdot executed 4 MACs!",
+                70: "DROM bypassed SRAM fetch!",
+                100: "2-Stage Pipeline unblocked!"
+            };
+
+            raceInterval = setInterval(() => {
+                time++;
+                let progAVA = Math.min(time / 100, 1.0); // AVA finishes at t=100
+                let progCPU = Math.min(time / (100 * 10.3), 1.0); // CPU takes 10.3x longer
+
+                ava.style.left = (20 + (progAVA * trackWidth)) + 'px';
+                cpu.style.left = (20 + (progCPU * trackWidth)) + 'px';
+
+                avaCount.innerText = Math.floor(progAVA * targetAVA) + " M";
+                cpuCount.innerText = Math.floor(progCPU * targetCPU) + " M";
+
+                if (speedtips[time]) {
+                    ava.classList.add('show-tooltip');
+                    tooltip.innerText = speedtips[time];
+                    setTimeout(() => ava.classList.remove('show-tooltip'), 1500);
+                }
+
+                if (progAVA >= 1.0) avaCount.innerText = targetAVA + " M Finish!";
+                if (progCPU >= 1.0 || time > TOTAL_TIME) {
+                    cpuCount.innerText = targetCPU + " M Finish!";
+                    clearInterval(raceInterval);
+                    btn.disabled = false;
+                    btn.innerText = "RESTART RACE";
+                }
+            }, 30);
+        }
+
+        // ================= MICROSCOPE LOGIC =================
+        let microscopeRunning = false;
+        let pId = 0;
+        let features = { fifo: true, vpdot: true, drom: true };
+
+        function toggleFeature(ft) {
+            features[ft] = !features[ft];
+            const btn = document.getElementById('btn-' + ft);
+            if (features[ft]) {
+                btn.classList.add('active');
+                btn.innerText = btn.innerText.replace(': OFF', ': ON');
+            } else {
+                btn.classList.remove('active');
+                btn.innerText = btn.innerText.replace(': ON', ': OFF');
+            }
+
+            // Visual updates to CSS based on features
+            const fifoUi = document.getElementById('ava-fifo-ui');
+            const lanesUi = document.getElementById('ava-lanes-ui');
+            fifoUi.style.opacity = features.fifo ? "1" : "0.2";
+            if (features.vpdot) {
+                lanesUi.innerHTML = '<div class="lane">L0: MAC</div><div class="lane">L1: MAC</div><div class="lane">L2: MAC</div><div class="lane">L3: MAC</div>';
+            } else {
+                lanesUi.innerHTML = '<div class="lane">L0: MAC ONLY</div>';
+            }
+        }
+
+        function createParticle(containerId, isAva) {
+            const p = document.createElement('div');
+            p.className = 'particle ' + (isAva ? 'ava' : 'cpu');
+            document.getElementById(containerId).appendChild(p);
+            return p;
+        }
+
+        function startMicroscope() {
+            if (microscopeRunning) return;
+            microscopeRunning = true;
+            document.getElementById('cpu-particles').innerHTML = '';
+            document.getElementById('ava-particles').innerHTML = '';
+
+            let cpuWaitQueue = 0;
+            let tick = 0;
+
+            let mInt = setInterval(() => {
+                tick++;
+
+                // Spawn particles
+                if (tick % 10 === 0 && tick < 100) {
+                    // CPU Pipeline
+                    let pC = createParticle('cpu-particles', false);
+                    pC.style.left = '0%';
+                    let cPos = 0;
+                    let cWait = cpuWaitQueue * 20; // memory stall penalty
+                    cpuWaitQueue++;
+
+                    let pCAnim = setInterval(() => {
+                        if (cPos < 55) { cPos += 2; } // fast to fetch/decode
+                        else if (cPos >= 55 && cPos < 58) {
+                            // Hit memory stall wall!
+                            if (cWait > 0) { cWait--; }
+                            else { cPos += 0.5; cpuWaitQueue--; } // super slow execute
+                        } else { cPos += 2; }
+
+                        pC.style.left = cPos + '%';
+                        if (cPos > 100) { clearInterval(pCAnim); pC.remove(); }
+                    }, 50);
+
+                    // AVA Pipeline
+                    // If vpdot is on, spawn 4 instructions packed into 1 particle
+                    let pA = createParticle('ava-particles', true);
+                    pA.style.left = '0%';
+                    let aPos = 0;
+                    let aWait = 0;
+                    if (!features.drom) aWait += 15; // stall if no drom
+                    if (!features.fifo) aWait += 10;
+
+                    let pAAnim = setInterval(() => {
+                        if (aPos < 32 && features.fifo) { aPos += 3; } // Fly into FIFO
+                        else if (aPos >= 32 && aPos < 65) {
+                            if (aWait > 0) aWait--;
+                            else aPos += features.fifo ? 4 : 1;
+                        } else {
+                            aPos += features.vpdot ? 5 : 2; // blast through SIMD
+                        }
+                        pA.style.left = aPos + '%';
+                        if (aPos > 100) { clearInterval(pAAnim); pA.remove(); }
+                    }, 50);
+                }
+
+                if (tick > 200) {
+                    clearInterval(mInt);
+                    microscopeRunning = false;
+                }
+            }, 50);
+        }
+
+        // ================= WATERFALL LOGIC =================
+        // Create 32x32 grids (1024 pixels)
+        const gridCpu = document.getElementById('grid-cpu');
+        const gridAva = document.getElementById('grid-ava');
+        let pixelsCpu = [];
+        let pixelsAva = [];
+        for (let i = 0; i < 1024; i++) {
+            let p1 = document.createElement('div'); p1.className = 'pixel'; gridCpu.appendChild(p1); pixelsCpu.push(p1);
+            let p2 = document.createElement('div'); p2.className = 'pixel'; gridAva.appendChild(p2); pixelsAva.push(p2);
+        }
+
+        // Handle Image Upload
+        const fileInput = document.getElementById('image-upload');
+        const preview = document.getElementById('img-preview');
+        const btnW = document.getElementById('waterfall-btn');
+        let imageColors = []; // Extract colors to paint the grid!
+
+        fileInput.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    preview.src = event.target.result;
+                    preview.style.display = 'block';
+                    btnW.style.display = 'block';
+                    extractColors(event.target.result);
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function extractColors(imgSrc) {
+            const img = new Image();
+            img.src = imgSrc;
+            img.onload = () => {
+                const canvas = document.getElementById('hidden-canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 32; canvas.height = 32;
+                ctx.drawImage(img, 0, 0, 32, 32);
+                const data = ctx.getImageData(0, 0, 32, 32).data;
+                imageColors = [];
+                for (let i = 0; i < data.length; i += 4) {
+                    imageColors.push(`rgb(${data[i]},${data[i + 1]},${data[i + 2]})`);
+                }
+            };
+        }
+
+        let wfInterval;
+        function startWaterfall() {
+            clearInterval(wfInterval);
+            const cCPU = document.getElementById('wf-cycles-cpu');
+            const cAVA = document.getElementById('wf-cycles-ava');
+            const sCPU = document.getElementById('wf-status-cpu');
+            const sAVA = document.getElementById('wf-status-ava');
+
+            // Reset
+            pixelsCpu.forEach(p => p.style.background = '#1e293b');
+            pixelsAva.forEach(p => p.style.background = '#1e293b');
+            cCPU.innerText = '0'; cAVA.innerText = '0';
+            sCPU.innerText = 'Processing...'; sAVA.innerText = 'Processing...';
+
+            let idxAVA = 0;
+            let idxCPU = 0;
+            let currentCpuCycles = 0;
+            let currentAvaCycles = 0;
+
+            // Randomize cycle counts each run for realism
+            const targetCpuCycles = 853.0 + Math.random();
+            const targetAvaCycles = 80.0 + Math.random() * 3.0;
+            const totalPixels = 1024;
+            let avaFinished = false;
+            let cpuFinished = false;
+            let predictionResult = null;
+
+            // Fire off the prediction request immediately so result is ready
+            fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image_data: document.getElementById('img-preview').src })
+            })
+                .then(res => res.json())
+                .then(data => { predictionResult = data; })
+                .catch(err => { predictionResult = null; });
+
+            // We want AVA to finish in ~2 seconds.
+            // AVA paints 4 pixels per tick (SIMD), CPU paints 0.3 pixels per tick
+
+            // Ensure AVA and CPU execute simultaneously via progress emulation
+            wfInterval = setInterval(() => {
+                // AVA Tick — SIMD parallel processing, finishes first
+                if (!avaFinished) {
+                    for (let i = 0; i < 6; i++) { // SIMD + Fast clock
+                        if (idxAVA < totalPixels) {
+                            pixelsAva[idxAVA].style.background = imageColors[idxAVA] || 'var(--ava-color)';
+                            pixelsAva[idxAVA].style.transform = 'scale(1.1)';
+                            setTimeout((idx) => { if (pixelsAva[idx]) pixelsAva[idx].style.transform = 'scale(1)'; }, 100, idxAVA);
+                            idxAVA++;
+                        }
+                    }
+                    currentAvaCycles = Math.min((idxAVA / totalPixels) * targetAvaCycles, targetAvaCycles);
+                    cAVA.innerText = Math.floor(currentAvaCycles);
+
+                    // AVA finishes first — show classification immediately
+                    if (idxAVA >= totalPixels) {
+                        avaFinished = true;
+                        cAVA.innerText = Math.floor(targetAvaCycles);
+                        if (predictionResult) {
+                            sAVA.innerText = "✅ " + predictionResult.class + " (" + predictionResult.confidence + "%)";
+                            sAVA.style.color = 'var(--ava-color)';
+                        } else {
+                            sAVA.innerText = "✅ Classification complete";
+                            sAVA.style.color = 'var(--ava-color)';
+                        }
+                    }
+                }
+
+                // CPU Tick — sequential, still struggling
+                if (!cpuFinished) {
+                    if (Math.random() > 0.3) { // Emulate stalls
+                        if (idxCPU < totalPixels) {
+                            pixelsCpu[idxCPU].style.background = imageColors[idxCPU] || 'var(--cpu-color)';
+                            idxCPU++;
+                        }
+                    }
+                    currentCpuCycles = Math.min((idxCPU / totalPixels) * targetCpuCycles, targetCpuCycles);
+                    cCPU.innerText = Math.floor(currentCpuCycles);
+
+                    // CPU finishes later — only then show its classification
+                    if (idxCPU >= totalPixels) {
+                        cpuFinished = true;
+                        cCPU.innerText = Math.floor(targetCpuCycles);
+                        if (predictionResult) {
+                            sCPU.innerText = "Classification: " + predictionResult.class + " (" + predictionResult.confidence + "%)";
+                        } else {
+                            sCPU.innerText = "Hardware execution complete";
+                        }
+                    }
+                }
+
+                // Both done — stop the interval
+                if (avaFinished && cpuFinished) {
+                    clearInterval(wfInterval);
+                }
+            }, 20);
+        }
+
+    </script>
+</body>
+
+</html>

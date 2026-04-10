@@ -123,6 +123,14 @@ begin
             // Slide down by 1 byte: shift A right by 8 bits, insert B[7:0] at top
             // vd = {carry_in_byte, a[31:8]}
             arith_result = {1'b0, b[7:0], a[31:8]};
+        PE_ARITH_PACKED_DOT4:
+        begin
+            // Packed INT4 SIMD dot product: 8 pairwise signed INT4 multiplies, summed
+            // Each nibble is sign-extended to 5 bits, multiplied (10-bit product), all summed
+            // Effectively doubles MACs/PE/cycle compared to INT8
+            macc = 1'b1;
+            arith_result = add_out;
+        end
     endcase
 end
 
@@ -144,6 +152,19 @@ begin
                         + ($signed(a[15: 8]) * $signed(b[15: 8]))
                         + ($signed(a[23:16]) * $signed(b[23:16]))
                         + ($signed(a[31:24]) * $signed(b[31:24])) );
+        mult_a = '0;
+        mult_b = '0;
+    end else if (op == PE_ARITH_PACKED_DOT4) begin
+        // Packed INT4 SIMD dot product: 8 pairwise signed INT4 multiplies, summed
+        // Extract 8 nibbles from each 32-bit operand, sign-extend, multiply, sum
+        mult_wide = 66'(  ($signed({a[ 3], a[ 3: 0]}) * $signed({b[ 3], b[ 3: 0]}))
+                        + ($signed({a[ 7], a[ 7: 4]}) * $signed({b[ 7], b[ 7: 4]}))
+                        + ($signed({a[11], a[11: 8]}) * $signed({b[11], b[11: 8]}))
+                        + ($signed({a[15], a[15:12]}) * $signed({b[15], b[15:12]}))
+                        + ($signed({a[19], a[19:16]}) * $signed({b[19], b[19:16]}))
+                        + ($signed({a[23], a[23:20]}) * $signed({b[23], b[23:20]}))
+                        + ($signed({a[27], a[27:24]}) * $signed({b[27], b[27:24]}))
+                        + ($signed({a[31], a[31:28]}) * $signed({b[31], b[31:28]})) );
         mult_a = '0;
         mult_b = '0;
     end else begin
@@ -269,10 +290,9 @@ end
 ////////////////////////////////////////////////////////////////////////////////
 
 // 2-stage pipeline register: captures arithmetic results for synthesis retiming.
-// In a real implementation, synthesis tools can use this register to split the
-// critical path between multiply and output stages for higher Fmax.
-// The functional output uses the combinational path for correct timing with
-// the decoder's write-enable logic.
+// Synthesis tools can use this register to split the critical path between
+// multiply and output stages for higher Fmax. The functional output uses
+// the combinational path for correct timing with the decoder's write-enable logic.
 
 logic [32:0] arith_result_pipe;
 logic [31:0] sat_result_pipe;
@@ -283,14 +303,12 @@ always_ff @(posedge clk) begin
 end
 
 // ReLU helper: clamp negative values to zero
-// Each PE handles one element sign-extended to 32 bits, so bit 31 is always
-// the sign bit regardless of vsew (the sign extension in vw_sign_ext handles this)
 logic [31:0] relu_result;
 always_comb begin
     relu_result = arith_result[31] ? 32'd0 : arith_result[31:0];
 end
 
-// Requantization helper: pre-computed to avoid latch inference in output mode case
+// Requantization helper
 logic signed [65:0] requant_shifted;
 logic [31:0] requant_result;
 always_comb begin
@@ -301,6 +319,49 @@ always_comb begin
         requant_result = -32'sd128;
     else
         requant_result = requant_shifted[31:0];
+end
+
+// ============================================================================
+// Activation Function LUTs (Sigmoid / Tanh) for INT8 hardware acceleration
+// Index = arith_result[7:0]. 256-entry constant LUTs.
+// Sigmoid: approx 255/(1+exp(-x/16)), Tanh: approx 127*tanh(x/32)+128
+// ============================================================================
+logic [7:0] sigmoid_lut [0:255];
+logic [7:0] tanh_lut    [0:255];
+
+initial begin : sigmoid_init
+    // Values approximate sigmoid scaled to [0,255] for input range [-128,127]
+    // Symmetric: low inputs → 0, zero input → 128, high inputs → 255
+    for (int i = 0; i < 256; i++) begin
+        // Default fill — monotonically increasing sigmoid shape
+        if (i < 128) // Positive inputs (0..127)
+            sigmoid_lut[i] = (i < 16) ? 8'(128 + i*2) :
+                             (i < 48) ? 8'(160 + (i-16)) :
+                             (i < 96) ? 8'(192 + (i-48)/3) :
+                                        8'd208 + ((i-96) < 16 ? 8'(i-96) : 8'd16);
+        else // Negative inputs: index 128=-128, 255=-1
+            sigmoid_lut[i] = (i > 240) ? 8'(128 - (256-i)*2) :
+                             (i > 208) ? 8'(96 - (240-i)) :
+                             (i > 160) ? 8'(64 - (208-i)/3) :
+                                         8'(48 - ((160-i) < 16 ? 8'(160-i) : 8'd16));
+    end
+end
+
+initial begin : tanh_init
+    // Values approximate tanh scaled to [0,255] for input range [-128,127]  
+    // Steeper than sigmoid: saturates faster
+    for (int i = 0; i < 256; i++) begin
+        if (i < 128) // Positive inputs
+            tanh_lut[i] = (i < 8)  ? 8'(128 + i*4) :
+                          (i < 24) ? 8'(160 + (i-8)*3) :
+                          (i < 48) ? 8'(208 + (i-24)) :
+                                     8'd232 + ((i-48) < 12 ? 8'(i-48) : 8'd12);
+        else // Negative inputs
+            tanh_lut[i] = (i > 248) ? 8'(128 - (256-i)*4) :
+                          (i > 232) ? 8'(96 - (248-i)*3) :
+                          (i > 208) ? 8'(48 - (232-i)) :
+                                      8'(24 - ((208-i) < 12 ? 8'(208-i) : 8'd12));
+    end
 end
 
 always_comb
@@ -325,7 +386,6 @@ begin
         PE_OP_MODE_RELU:
             out = relu_result;
         PE_OP_MODE_CLAMP:
-            // ReLU6 / Clamp: min(max(0, x), upper_bound)
             if (arith_result[31])
                 out = 32'd0;
             else if (arith_result[31:0] > {24'd0, act_param})
@@ -333,19 +393,21 @@ begin
             else
                 out = arith_result[31:0];
         PE_OP_MODE_LEAKY_RELU:
-            // Leaky ReLU: x >= 0 ? x : x >>> shift  (arithmetic right-shift preserves sign)
             if (arith_result[31])
                 out = $signed(arith_result[31:0]) >>> act_param[4:0];
             else
                 out = arith_result[31:0];
         PE_OP_MODE_ABS:
-            // Absolute value: |x|
             if (arith_result[31])
                 out = -arith_result[31:0];
             else
                 out = arith_result[31:0];
         PE_OP_MODE_REQUANT:
             out = requant_result;
+        PE_OP_MODE_SIGMOID:
+            out = {24'd0, sigmoid_lut[arith_result[7:0]]};
+        PE_OP_MODE_TANH:
+            out = {24'd0, tanh_lut[arith_result[7:0]]};
     endcase
 end
 

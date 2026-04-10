@@ -1,0 +1,63 @@
+===============================================================================
+ LLVM Patch: Add AVA Vendor Extension Feature to RISCVFeatures.td
+===============================================================================
+
+File: llvm/lib/Target/RISCV/RISCVFeatures.td
+
+Add the following SubtargetFeature definition in the "Vendor extensions"
+section, near other vendor extension features (e.g., FeatureVendorXTHead*):
+
+--- a/llvm/lib/Target/RISCV/RISCVFeatures.td
++++ b/llvm/lib/Target/RISCV/RISCVFeatures.td
+@@ -xxx,6 +xxx,12 @@
++//===----------------------------------------------------------------------===//
++// AVA (AI Vector Accelerator) Vendor Extension
++//===----------------------------------------------------------------------===//
++
++def FeatureVendorXava
++    : SubtargetFeature<"xava", "HasVendorXava", "true",
++                       "AVA custom vector instructions for DNN inference",
++                       [FeatureStdExtZve32x]>;
+
+Notes:
+  - The feature name "xava" follows the RISC-V vendor extension naming
+    convention (lowercase 'x' prefix + vendor name).
+  - It depends on FeatureStdExtV because all AVA instructions use the OP-V
+    major opcode (0x57) and operate on vector registers.
+  - This adds a boolean field HasVendorXava to RISCVSubtarget that gates
+    instruction selection in RISCVInstrInfoXava.td.
+
+===============================================================================
+ LLVM Patch: Register Extension in RISCVISAInfo.cpp
+===============================================================================
+
+File: llvm/lib/TargetParser/RISCVISAInfo.cpp
+
+In the vendor extension table (search for "Vendor Extensions"),
+add the following entry:
+
+--- a/llvm/lib/TargetParser/RISCVISAInfo.cpp
++++ b/llvm/lib/TargetParser/RISCVISAInfo.cpp
+@@ -xxx,6 +xxx,7 @@
+     // Vendor Extensions
++    {"xava", {1, 0}},
+
+Notes:
+  - Version 1.0 corresponds to the initial AVA instruction set.
+  - This enables -march=rv32imv_xava1p0 to be parsed by clang.
+
+===============================================================================
+ LLVM Patch: Include Xava TableGen in RISCVInstrInfo.td
+===============================================================================
+
+File: llvm/lib/Target/RISCV/RISCVInstrInfo.td
+
+At the bottom of the file, after all other includes, add:
+
+--- a/llvm/lib/Target/RISCV/RISCVInstrInfo.td
++++ b/llvm/lib/Target/RISCV/RISCVInstrInfo.td
+@@ -xxx,3 +xxx,6 @@
++//===----------------------------------------------------------------------===//
++// AVA Vendor Extension
++//===----------------------------------------------------------------------===//
++include "RISCVInstrInfoXava.td"

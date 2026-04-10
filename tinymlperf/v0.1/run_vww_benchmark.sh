@@ -60,8 +60,8 @@ build_config() {
     make TARGET_ARCH="${target_arch}" clean 2>&1
 
     # Build
-    echo ">>> Building with TARGET_ARCH=${target_arch} USE_MODIFIED_AVA=${use_modified} USE_STOCK_AVA=${use_stock}"
-    make TARGET_ARCH="${target_arch}" USE_MODIFIED_AVA="${use_modified}" USE_STOCK_AVA="${use_stock}" 2>&1
+    echo ">>> Building with TARGET_ARCH=${target_arch} USE_MODIFIED_AVA=${use_modified} USE_STOCK_AVA=${use_stock} USE_LLVM=${USE_LLVM:-0}"
+    make TARGET_ARCH="${target_arch}" USE_MODIFIED_AVA="${use_modified}" USE_STOCK_AVA="${use_stock}" USE_LLVM="${USE_LLVM:-0}" 2>&1
 
     if [ ! -f vww_perf_runner ]; then
         echo "ERROR: vww_perf_runner not found after build!"
@@ -114,19 +114,16 @@ run_simulation() {
     local csv_file="${RESULTS_DIR}/${label}_progs.csv"
     echo "${vmem_path} /dev/null 00000000 00000000 /dev/null 00000000 00000000 " > "${csv_file}"
 
-    # Build Verilator if not already built
-    if [ ! -f "${VERILATOR_BUILD_DIR}/obj_dir/Vcv32e40x_wrapper" ]; then
-        echo ">>> Building Verilator model (first time only)..."
-        make verilator \
-            PROG_PATHS_LIST="${csv_file}" \
-            AVA_DIR="${AVA_DIR}" \
-            PROJ_DIR="${VERILATOR_BUILD_DIR}" \
-            MEM_SZ="${MEM_SZ}" 2>&1 | tee "${out_file}"
-    else
-        echo ">>> Verilator model already built, running simulation..."
-        "${VERILATOR_BUILD_DIR}/obj_dir/Vcv32e40x_wrapper" \
-            "${csv_file}" 32 ${MEM_SZ} 1 100 2>&1 | tee "${out_file}"
-    fi
+    echo ">>> Building/Checking Verilator model..."
+    make verilator \
+        PROG_PATHS_LIST="${csv_file}" \
+        AVA_DIR="${AVA_DIR}" \
+        PROJ_DIR="${VERILATOR_BUILD_DIR}" \
+        MEM_SZ="${MEM_SZ}" 2>&1 | tee "${out_file}"
+    
+    echo ">>> Running simulation..."
+    "${VERILATOR_BUILD_DIR}/obj_dir/Vcv32e40x_wrapper" \
+        "${csv_file}" 32 ${MEM_SZ} 1 100 2>&1 | tee -a "${out_file}"
 
     echo ""
     echo ">>> Simulation complete for ${label}"

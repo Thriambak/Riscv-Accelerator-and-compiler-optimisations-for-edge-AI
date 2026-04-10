@@ -57,6 +57,7 @@ apu_result_src_t apu_result_select;
 wire unsigned_immediate;
 wire wide_vs1;
 wire mask_enable;
+wire sparse_meta_write;  // N:M Sparsity: decoder asserts when vspmeta instruction loads metadata
 
 // VLSU OUTPUTS
 wire [127:0] vlsu_wdata;
@@ -81,6 +82,20 @@ wire [127:0] replicated_scalar;
 wire [31:0] dot_product_result;
 wire [3:0]  zero_skip_mask;
 wire        all_zero_cycle;        // Sparsity compaction: all PEs had zero B operand
+
+////////////////////////////////////////////////////////////////////////////////
+// N:M STRUCTURED SPARSITY — Metadata Register
+// Software loads a 32-bit metadata word via `vspmeta` instruction.
+// Each 4 bits encode which elements in a group of 4 are non-zero.
+// The arith_stage uses this to compact non-zero elements into fewer PE lanes.
+////////////////////////////////////////////////////////////////////////////////
+logic [31:0] sparse_metadata_reg;
+always_ff @(posedge clk, negedge n_reset) begin
+    if (~n_reset)
+        sparse_metadata_reg <= '0;
+    else if (sparse_meta_write)
+        sparse_metadata_reg <= scalar_operand1;
+end
 
 ////////////////////////////////////////////////////////////////////////////////
 // MODULE INSTANTIATION
@@ -175,6 +190,7 @@ vector_decoder vdec0 (
     .unsigned_immediate(unsigned_immediate),
     .wide_vs1(wide_vs1),
     .mask_enable(mask_enable),
+    .sparse_meta_write(sparse_meta_write),
     .clk(clk),
     .n_reset(n_reset),
     .apu_req(fifo_dec_apu_req),                    // ← from FIFO
@@ -183,6 +199,7 @@ vector_decoder vdec0 (
     .apu_flags_i(fifo_dec_apu_flags),              // ← from FIFO
     .vl(vl),
     .vsew(vsew),
+    .vlmul(vlmul),
     .vlsu_en_o(vlsu_en),
     .vlsu_load_o(vlsu_load),
     .vlsu_store_o(vlsu_store),
@@ -267,7 +284,8 @@ arith_stage arith_stage0 (
     .unsigned_immediate(unsigned_immediate),
     .wide_vs1(wide_vs1),
     .vl(vl),
-    .vsew(vsew)
+    .vsew(vsew),
+    .sparse_metadata(sparse_metadata_reg)
 );
 
 ////////////////////////////////////////
@@ -323,6 +341,7 @@ logic [31:0] perf_vlsu_stall_count;  // Cycles VLSU waiting for memory
 logic [31:0] perf_compute_cycles;    // Cycles PEs are active (decoder in EXEC)
 logic [31:0] perf_skipped_ops;       // Zero-skipped PE operations
 logic [31:0] perf_compacted_cycles;  // Cycles fully skipped by compaction
+logic [31:0] perf_sparse_cycles;     // Cycles saved by N:M sparse compaction
 
 always_ff @(posedge clk, negedge n_reset) begin
     if (~n_reset) begin
@@ -331,6 +350,7 @@ always_ff @(posedge clk, negedge n_reset) begin
         perf_compute_cycles   <= '0;
         perf_skipped_ops      <= '0;
         perf_compacted_cycles <= '0;
+        perf_sparse_cycles    <= '0;
     end else begin
         // Count completed vector instructions
         if (apu_rvalid)
@@ -346,6 +366,9 @@ always_ff @(posedge clk, negedge n_reset) begin
         // Count fully-compacted cycles (all 4 PEs had zero B)
         if (all_zero_cycle && core_halt_o && !vlsu_en)
             perf_compacted_cycles <= perf_compacted_cycles + 1;
+        // Count cycles where sparse compaction was active
+        if (operand_select == PE_OPERAND_SPARSE && core_halt_o && !vlsu_en)
+            perf_sparse_cycles <= perf_sparse_cycles + 1;
     end
 end
 
@@ -373,6 +396,7 @@ always_comb begin
                 3'd2: reg_apu_result = perf_compute_cycles;
                 3'd3: reg_apu_result = perf_skipped_ops;
                 3'd4: reg_apu_result = perf_compacted_cycles;
+                3'd5: reg_apu_result = perf_sparse_cycles;
             endcase
     endcase
 end

@@ -15,14 +15,15 @@ typedef enum logic [3:0] {
     PE_ARITH_DOT,        // Dot product (multiply in PE, reduce in adder tree)
     PE_ARITH_MULADD_OFF,  // Multiply-add with offset: vd += (vs2+offA)*(vs1+offB)
     PE_ARITH_PACKED_DOT,   // Packed INT8 dot: sum of 4 pairwise INT8 products
-    PE_ARITH_SLIDE1DN      // Slide down by 1 element: out = {b[7:0], a[31:8]}
+    PE_ARITH_SLIDE1DN,     // Slide down by 1 element: out = {b[7:0], a[31:8]}
+    PE_ARITH_PACKED_DOT4   // Packed INT4 dot: sum of 8 pairwise INT4 products
 } pe_arith_op_t;
 
 // PE output mode
 // PE_OP_MODE_RESULT: pass through arithmetic result
 // PE_OP_MODE_PASS_MAX: pass larger of operands A and B
 // PE_OP_MODE_PASS_MIN: pass smaller of operands A and B
-typedef enum logic [2:0] {
+typedef enum logic [3:0] {
     PE_OP_MODE_RESULT,
     PE_OP_MODE_PASS_MAX,
     PE_OP_MODE_PASS_MIN,
@@ -30,7 +31,9 @@ typedef enum logic [2:0] {
     PE_OP_MODE_CLAMP,       // Clamp/ReLU6: min(max(0, result), param)
     PE_OP_MODE_LEAKY_RELU,  // Leaky ReLU: x >= 0 ? x : x >>> param
     PE_OP_MODE_ABS,         // Absolute value: |result|
-    PE_OP_MODE_REQUANT      // TFLite requantization: clamp((vs2*scale)>>shift, -128, 127)
+    PE_OP_MODE_REQUANT,     // TFLite requantization: clamp((vs2*scale)>>shift, -128, 127)
+    PE_OP_MODE_SIGMOID,     // Sigmoid LUT: lookup table approximation for INT8
+    PE_OP_MODE_TANH         // Tanh LUT: lookup table approximation for INT8
 } pe_output_mode_t;
 
 // PE saturation mode
@@ -55,7 +58,8 @@ typedef enum logic [2:0] {
     PE_OPERAND_IMMEDIATE,
     PE_OPERAND_RIPPLE,
     PE_OPERAND_ZERO,
-    PE_OPERAND_SLIDE       // Slide mode: each PE gets carry-in byte from next PE's vs2
+    PE_OPERAND_SLIDE,      // Slide mode: each PE gets carry-in byte from next PE's vs2
+    PE_OPERAND_SPARSE      // N:M Sparsity: compacted non-zero elements from vs1
 } pe_operand_t;
 
 // Source of data written back to vd in vector registers

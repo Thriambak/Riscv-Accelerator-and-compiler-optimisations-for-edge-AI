@@ -1,0 +1,59 @@
+===============================================================================
+ LLVM Patch: Lower Xava Builtins to Custom IR Intrinsics / TableGen Patterns
+===============================================================================
+
+File: clang/lib/CodeGen/CGBuiltin.cpp
+
+Add the RISC-V Xava switch cases inside `EmitRISCVBuiltinExpr`:
+
+--- a/clang/lib/CodeGen/CGBuiltin.cpp
++++ b/clang/lib/CodeGen/CGBuiltin.cpp
+@@ -xxx,8 +xxx,44 @@
+ Value *CodeGenFunction::EmitRISCVBuiltinExpr(unsigned BuiltinID,
+                                              const CallExpr *E,
+                                              ReturnValueSlot ReturnValue) {
+   switch (BuiltinID) {
++  // --- AVA Custom Instructions (Xava) ---
++  case RISCV::BI__builtin_riscv_xava_vpdot:
++  case RISCV::BI__builtin_riscv_xava_vpdot4:
++  case RISCV::BI__builtin_riscv_xava_vdot:
++  case RISCV::BI__builtin_riscv_xava_vmacc:
++  case RISCV::BI__builtin_riscv_xava_vrequant: {
++    // 3 vector operands: vd, vs2, vs1 (or rs1 for vrequant)
++    // In inline asm logic, lowering can just emit the correct asm pattern,
++    // or if we map to custom LLVM intrinsics, it calls Intrinsic::riscv_xava_*
++    // For simplicity in keeping the compiler oblivious, we often map these to
++    // inline asm directly in CodeGen or to specific LLVM IR intrinsics.
++    Value *VD = EmitScalarExpr(E->getArg(0));
++    Value *VS2 = EmitScalarExpr(E->getArg(1));
++    Value *VS1 = EmitScalarExpr(E->getArg(2));
++    Function *F = CGM.getIntrinsic(Intrinsic::riscv_xava_vpdot); // Example
++    return Builder.CreateCall(F, {VD, VS2, VS1});
++  }
++  case RISCV::BI__builtin_riscv_xava_vrelu:
++  case RISCV::BI__builtin_riscv_xava_vsigmoid:
++  case RISCV::BI__builtin_riscv_xava_vtanh: {
++    Value *VD = EmitScalarExpr(E->getArg(0));
++    Value *VS2 = EmitScalarExpr(E->getArg(1));
++    Function *F = CGM.getIntrinsic(Intrinsic::riscv_xava_vrelu);
++    return Builder.CreateCall(F, {VD, VS2});
++  }
++  case RISCV::BI__builtin_riscv_xava_vperf: {
++    Value *VD = EmitScalarExpr(E->getArg(0));
++    Function *F = CGM.getIntrinsic(Intrinsic::riscv_xava_vperf);
++    return Builder.CreateCall(F, {VD});
++  }
+
+Notes:
+  - This pseudocode assumes you define corresponding `Intrinsic::riscv_xava_*`
+    in `llvm/include/llvm/IR/IntrinsicsRISCV.td`.
+  - A much simpler and highly robust approach used by many accelerator teams
+    (instead of full LLVM IR Custom Intrinsics) is to map the Clang Builtin
+    directly to TableGen pseudo-inline-asm or directly generate the DAG node.
+    Since we defined TableGen classes (VPDOT_VV etc) in RISCVInstrInfoXava.td,
+    the compiler can auto-generate `IntrinsicsRISCVXava.td` mapping if we use
+    the `ClangBuiltin` hook in the standard LLVM `def` pattern:
+
+    def int_riscv_xava_vpdot : Intrinsic<[llvm_anyvector_ty],
+      [llvm_anyvector_ty, llvm_anyvector_ty],
+      [IntrNoMem]>; // in IntrinsicsRISCV.td
